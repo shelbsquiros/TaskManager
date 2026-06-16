@@ -3973,7 +3973,7 @@ function openKpiTaskDetail(taskId, kpiCardIdx) {
   openModal(`
     ${buildModalDetailHeader(item, typeIcon, typeLabel, pri)}
     <div class="detail-grid">
-      <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><button id="detail-status-btn-${item.id}" class="status-badge-btn" style="background:${getStatusColor(getDisplayStatus(item))||'#64748B'}22;color:${getStatusColor(getDisplayStatus(item))||'#64748B'};border-color:${getStatusColor(getDisplayStatus(item))||'#64748B'}44" onclick="openStatusDropdown('${item.id}',this,event)" title="Change status">${getDisplayStatus(item)}</button>${(()=>{const {doneAt}=parseStatus(item.status);return doneAt?`<span style="font-size:10px;color:var(--muted);margin-left:6px">at ${fmtTime(doneAt.split(' ')[1]||doneAt)}</span>`:'';})()}</span></div>
+      ${_buildDetailStatusRow(item)}
       ${row(item.type === 'task' ? 'Due Date' : 'Date', fmtDisplayDate(dateField))}
       ${row('Start Date', fmtDisplayDate(startField))}
       ${row('Time', timeStr)}
@@ -4138,6 +4138,17 @@ function _buildStatusBadge(t) {
   const _disp  = getDisplayStatus(t);
   const _color = getStatusColor(_disp);
   return `<button class="status-badge-btn" style="background:${_color}22;color:${_color};border-color:${_color}44" onclick="openStatusDropdown('${t.id}',this,event)" title="Change status">${_disp}</button>`;
+}
+// Detail-modal status row — renders the Status detail-row for item detail modals.
+// Includes the status button (with id for in-place DOM update) and optional doneAt suffix.
+// Used by openKpiTaskDetail(), openTodayItemDetail() (task-only), and openTEEDetail().
+function _buildDetailStatusRow(item) {
+  const _sc = getStatusColor(getDisplayStatus(item)) || '#64748B';
+  const {doneAt} = parseStatus(item.status);
+  const _doneAtHTML = doneAt
+    ? `<span style="font-size:10px;color:var(--muted);margin-left:6px">at ${fmtTime(doneAt.split(' ')[1]||doneAt)}</span>`
+    : '';
+  return `<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><button id="detail-status-btn-${item.id}" class="status-badge-btn" style="background:${_sc}22;color:${_sc};border-color:${_sc}44" onclick="openStatusDropdown('${item.id}',this,event)" title="Change status">${getDisplayStatus(item)}</button>${_doneAtHTML}</span></div>`;
 }
 
 // Type badge — non-clickable label (Task / Event / Entry)
@@ -4887,7 +4898,7 @@ function openTodayItemDetail(itemId, type) {
   openModal(`
     ${buildModalDetailHeader(item, typeIcon, typeLabel, pri, colorSwatch)}
     <div class="detail-grid">
-      ${item.type==='task'?`<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><button id="detail-status-btn-${item.id}" class="status-badge-btn" style="background:${getStatusColor(getDisplayStatus(item))||'#64748B'}22;color:${getStatusColor(getDisplayStatus(item))||'#64748B'};border-color:${getStatusColor(getDisplayStatus(item))||'#64748B'}44" onclick="openStatusDropdown('${item.id}',this,event)" title="Change status">${getDisplayStatus(item)}</button>${(()=>{const {doneAt}=parseStatus(item.status);return doneAt?`<span style="font-size:10px;color:var(--muted);margin-left:6px">at ${fmtTime(doneAt.split(' ')[1]||doneAt)}</span>`:'';})()}</span></div>`:''}
+      ${item.type==='task' ? _buildDetailStatusRow(item) : ''}
       ${row(item.type==='task'?'Due Date':'Date', fmtDisplayDate(dateField))}
       ${row('Start Date', fmtDisplayDate(startField))}
       ${row('Time', timeStr)}
@@ -7976,7 +7987,7 @@ function openTEEDetail(itemId, _u1, isArchived) {
     ${buildModalDetailHeader(item, typeIcon, typeLabel, pri, colorSwatch)}
 
     <div class="detail-grid">
-      <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><button id="detail-status-btn-${item.id}" class="status-badge-btn" style="background:${getStatusColor(getDisplayStatus(item))||'#64748B'}22;color:${getStatusColor(getDisplayStatus(item))||'#64748B'};border-color:${getStatusColor(getDisplayStatus(item))||'#64748B'}44" onclick="openStatusDropdown('${item.id}',this,event)" title="Change status">${getDisplayStatus(item)}</button>${(()=>{const {doneAt}=parseStatus(item.status);return doneAt?`<span style="font-size:10px;color:var(--muted);margin-left:6px">at ${fmtTime(doneAt.split(' ')[1]||doneAt)}</span>`:'';})()}</span></div>
+      ${_buildDetailStatusRow(item)}
       ${row(item.type === 'task' ? 'Due Date' : 'Date', fmtDisplayDate(dateField))}
       ${row('Start Date', fmtDisplayDate(startField))}
       ${row('Time', timeStr)}
