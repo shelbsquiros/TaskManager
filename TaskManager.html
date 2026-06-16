@@ -4156,6 +4156,18 @@ function _buildTagChip(tag) {
   const tc = tagColor(tag);
   return `<button class="tag-btn gt-tag" style="background:${tc.bg};color:${tc.text};border-color:${tc.border}" onclick="event.stopPropagation();openTagList('${tag}')"><span style="opacity:0.5">#</span>${tag}</button>`;
 }
+// Detail-modal tag row — renders the Tags detail-row for item detail modals.
+// reopenExpr: string expression that reopens the current modal, e.g. "openTEEDetail('T-001')"
+// Used by openTodayItemDetail() and openTEEDetail().
+function _buildDetailTagRow(tags, reopenExpr) {
+  const tagArr = Array.isArray(tags) ? tags : (tags||'').split(',').map(t=>t.trim()).filter(Boolean);
+  if (!tagArr.length) return '';
+  const tagBtns = tagArr.map(t => {
+    const tc = tagColor(t);
+    return `<button class="tag-btn" style="background:${tc.bg};color:${tc.text};border-color:${tc.border}" onclick="_navTo(()=>${reopenExpr},()=>openTagList('${t}'))" title="View all #${t} items"><span style="opacity:0.5">#</span>${t}</button>`;
+  }).join(' ');
+  return `<div class="detail-row"><span class="detail-label">Tags</span><span class="detail-value" style="display:flex;flex-wrap:wrap;gap:4px">${tagBtns}</span></div>`;
+}
 
 // Extract trailing hashtags from note text — safety net for manually typed tags
 // Reads backwards from end collecting consecutive #word tokens
@@ -4882,12 +4894,7 @@ function openTodayItemDetail(itemId, type) {
       ${row('Category', item.category)}
       ${row('Project', item.project)}
       ${row('Assignees', formatAssigneesDisplay(item))}
-      ${(()=>{
-        const tagArr = Array.isArray(item.tags)?item.tags:(item.tags||'').split(',').map(t=>t.trim()).filter(Boolean);
-        if(!tagArr.length) return '';
-        const tagBtns = tagArr.map(t=>`<button class="tag-btn" style="${(tc=>'background:'+tc.bg+';color:'+tc.text+';border-color:'+tc.border)(tagColor(t))}" onclick="_navTo(()=>openTodayItemDetail('${item.id}','${type}'),()=>openTagList('${t}'))" title="View all #${t} items"><span style="opacity:0.5">#</span>${t}</button>`).join(' ');
-        return `<div class="detail-row"><span class="detail-label">Tags</span><span class="detail-value" style="display:flex;flex-wrap:wrap;gap:4px">${tagBtns}</span></div>`;
-      })()}
+      ${_buildDetailTagRow(item.tags, `openTodayItemDetail('${item.id}','${type}')`)}
     </div>
     ${item.desc?`<div style="margin:12px 0 4px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">Description</div><div style="font-size:13px;color:var(--text2);line-height:1.6;padding:10px;background:var(--glass);border:1px solid var(--border);border-radius:10px">${item.desc}</div>`:''}
     ${item.notes?`<div style="margin:12px 0 4px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">Notes</div><div style="font-size:13px;color:var(--text2);line-height:1.6;padding:10px;background:var(--glass);border:1px solid var(--border);border-radius:10px">${item.notes}</div>`:''}
@@ -7977,12 +7984,7 @@ function openTEEDetail(itemId, _u1, isArchived) {
       ${row('Project', item.project)}
       ${row('Assignees', formatAssigneesDisplay(item))}
       ${row('Department', item.dept)}
-      ${(()=>{
-        const tagArr = Array.isArray(item.tags)?item.tags:(item.tags||'').split(',').map(t=>t.trim()).filter(Boolean);
-        if(!tagArr.length) return '';
-        const tagBtns = tagArr.map(t=>`<button class="tag-btn" style="${(tc=>'background:'+tc.bg+';color:'+tc.text+';border-color:'+tc.border)(tagColor(t))}" onclick="_navTo(()=>openTEEDetail('${item.id}'),()=>openTagList('${t}'))" title="View all #${t} items"><span style="opacity:0.5">#</span>${t}</button>`).join(' ');
-        return `<div class="detail-row"><span class="detail-label">Tags</span><span class="detail-value" style="display:flex;flex-wrap:wrap;gap:4px">${tagBtns}</span></div>`;
-      })()}
+      ${_buildDetailTagRow(item.tags, `openTEEDetail('${item.id}')`)}
     </div>
 
     ${item.desc  ? `<div style="margin:14px 0 4px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">Description</div>
