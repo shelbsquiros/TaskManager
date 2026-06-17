@@ -9519,140 +9519,129 @@ const DATE_COLUMNS = ['Date', 'Due Date', 'Start Date', 'Archived Date'];
 const TIME_COLUMNS = ['Time', 'End Time'];
 
 // Apps Script / Google Sheets date values are not always reliable with instanceof Date.
-// This checks for Date-like objects by behavior instead.
+// This checks for Date-like objects by duck-typing instead.
 function isDateLike(value) {
-return value &&
-typeof value === 'object' &&
-typeof value.getFullYear === 'function' &&
-typeof value.getMonth === 'function' &&
-typeof value.getDate === 'function';
+  return value &&
+    typeof value === 'object' &&
+    typeof value.getFullYear === 'function' &&
+    typeof value.getMonth   === 'function' &&
+    typeof value.getDate    === 'function';
 }
 
 function formatCell(header, value, displayValue) {
-// For TIME columns: always use the display value, e.g. "11:45".
-// This bypasses timezone issues completely.
-if (TIME_COLUMNS.includes(header)) {
-if (displayValue && /^\d{1,2}:\d{2}/.test(displayValue)) {
-return displayValue.substring(0, 5);
-}
-
-```
-// Fallback: numeric fraction of a day.
-if (typeof value === 'number') {
-  var totalMins = Math.round(value * 24 * 60);
-  var h = Math.floor(totalMins / 60) % 24;
-  var min = totalMins % 60;
-  return String(h).padStart(2,'0') + ':' + String(min).padStart(2,'0');
-}
-
-return '';
-```
-
-}
-
-// True date columns normalize to YYYY-MM-DD.
-if (DATE_COLUMNS.includes(header) && isDateLike(value)) {
-var y = value.getFullYear();
-var m = String(value.getMonth() + 1).padStart(2, '0');
-var d = String(value.getDate()).padStart(2, '0');
-return y + '-' + m + '-' + d;
-}
-
-// P0-BUG002 fix:
-// Non-date columns whose cells were auto-coerced to date-like values by Google Sheets
-// must return the visible display text, not a UTC ISO string.
-if (isDateLike(value)) {
-return displayValue || '';
-}
-
-return value;
+  // TIME columns: always use the display value (e.g. "11:45").
+  // This bypasses all timezone issues completely.
+  if (TIME_COLUMNS.includes(header)) {
+    if (displayValue && /^\d{1,2}:\d{2}/.test(displayValue)) {
+      return displayValue.substring(0, 5);
+    }
+    // Fallback: numeric fraction of a day.
+    if (typeof value === 'number') {
+      var totalMins = Math.round(value * 24 * 60);
+      var h   = Math.floor(totalMins / 60) % 24;
+      var min = totalMins % 60;
+      return String(h).padStart(2,'0') + ':' + String(min).padStart(2,'0');
+    }
+    return '';
+  }
+  // DATE columns: normalize to YYYY-MM-DD using sheet-local date components.
+  if (DATE_COLUMNS.includes(header) && isDateLike(value)) {
+    var y = value.getFullYear();
+    var m = String(value.getMonth() + 1).padStart(2, '0');
+    var d = String(value.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  }
+  // P0-BUG002: Non-date columns whose cells were auto-coerced to Date-like
+  // objects by Google Sheets must return the visible display text, not an
+  // ISO string. Using instanceof Date alone was not reliable; isDateLike()
+  // duck-types instead.
+  if (isDateLike(value)) {
+    return displayValue || '';
+  }
+  return value;
 }
 
 function handleRequest(e, method) {
-try {
-if (method === 'GET') {
-const action    = e.parameter.action;
-const sheetName = e.parameter.sheet;
-if (!sheetName) throw new Error('Missing sheet');
-const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
-if (!sheet) throw new Error('Sheet not found: ' + sheetName);
+  try {
+    if (method === 'GET') {
+      const action    = e.parameter.action;
+      const sheetName = e.parameter.sheet;
+      if (!sheetName) throw new Error('Missing sheet');
+      const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+      if (!sheet) throw new Error('Sheet not found: ' + sheetName);
 
-```
-  if (action === 'getAll') {
-    const range = sheet.getDataRange();
-    const values = range.getValues();
-    const displayValues = range.getDisplayValues();
+      if (action === 'getAll') {
+        const range = sheet.getDataRange();
+        const values = range.getValues();
+        const displayValues = range.getDisplayValues();
 
-    if (values.length < 2) return output({ ok: true, data: [] });
+        if (values.length < 2) return output({ ok: true, data: [] });
 
-    const headers = values[0];
-    const data = values.slice(1)
-      .map((row, rowIdx) => ({ row, display: displayValues[rowIdx + 1] }))
-      .filter(({ row }) => row.some(cell => cell !== ''))
-      .map(({ row, display }) => {
-        const obj = {};
-        headers.forEach((h, i) => {
-          obj[h] = formatCell(h, row[i], display[i]);
-        });
-        return obj;
-      });
+        const headers = values[0];
+        const data = values.slice(1)
+          .map((row, rowIdx) => ({ row, display: displayValues[rowIdx + 1] }))
+          .filter(({ row }) => row.some(cell => cell !== ''))
+          .map(({ row, display }) => {
+            const obj = {};
+            headers.forEach((h, i) => {
+              obj[h] = formatCell(h, row[i], display[i]);
+            });
+            return obj;
+          });
 
-    return output({ ok: true, data });
-  }
+        return output({ ok: true, data });
+      }
 
-  throw new Error('Invalid GET action');
-}
-
-if (method === 'POST') {
-  const body  = JSON.parse(e.postData.contents);
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(body.sheet);
-  if (!sheet) throw new Error('Sheet not found: ' + body.sheet);
-
-  if (body.action === 'upsert') {
-    const headers   = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const idField   = headers[0];
-    const item      = body.data;
-    const id        = item[idField];
-    const lastRow   = Math.max(sheet.getLastRow() - 1, 1);
-    const rows      = sheet.getRange(2, 1, lastRow, 1).getValues().flat();
-    const rowIndex  = rows.indexOf(id);
-    const rowData   = headers.map(h => item[h] !== undefined ? item[h] : '');
-
-    if (rowIndex >= 0) {
-      sheet.getRange(rowIndex + 2, 1, 1, rowData.length).setValues([rowData]);
-    } else {
-      sheet.appendRow(rowData);
+      throw new Error('Invalid GET action');
     }
 
-    return output({ ok: true });
+    if (method === 'POST') {
+      const body  = JSON.parse(e.postData.contents);
+      const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(body.sheet);
+      if (!sheet) throw new Error('Sheet not found: ' + body.sheet);
+
+      if (body.action === 'upsert') {
+        const headers   = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        const idField   = headers[0];
+        const item      = body.data;
+        const id        = item[idField];
+        const lastRow   = Math.max(sheet.getLastRow() - 1, 1);
+        const rows      = sheet.getRange(2, 1, lastRow, 1).getValues().flat();
+        const rowIndex  = rows.indexOf(id);
+        const rowData   = headers.map(h => item[h] !== undefined ? item[h] : '');
+
+        if (rowIndex >= 0) {
+          sheet.getRange(rowIndex + 2, 1, 1, rowData.length).setValues([rowData]);
+        } else {
+          sheet.appendRow(rowData);
+        }
+
+        return output({ ok: true });
+      }
+
+      if (body.action === 'delete') {
+        const id       = body.id;
+        const lastRow  = Math.max(sheet.getLastRow() - 1, 1);
+        const rows     = sheet.getRange(2, 1, lastRow, 1).getValues().flat();
+        const rowIndex = rows.indexOf(id);
+
+        if (rowIndex >= 0) sheet.deleteRow(rowIndex + 2);
+
+        return output({ ok: true });
+      }
+
+      throw new Error('Invalid POST action');
+    }
+  } catch (err) {
+    return output({ ok: false, error: err.message });
   }
-
-  if (body.action === 'delete') {
-    const id       = body.id;
-    const lastRow  = Math.max(sheet.getLastRow() - 1, 1);
-    const rows     = sheet.getRange(2, 1, lastRow, 1).getValues().flat();
-    const rowIndex = rows.indexOf(id);
-
-    if (rowIndex >= 0) sheet.deleteRow(rowIndex + 2);
-
-    return output({ ok: true });
-  }
-
-  throw new Error('Invalid POST action');
-}
-```
-
-} catch (err) {
-return output({ ok: false, error: err.message });
-}
 }
 
 function output(obj) {
-return ContentService
-.createTextOutput(JSON.stringify(obj))
-.setMimeType(ContentService.MimeType.JSON);
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
 }
-
 
 ================================================================
 -->
