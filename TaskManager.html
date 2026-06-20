@@ -114,7 +114,7 @@ button { font-family: var(--font); cursor: pointer; }
 input, select, textarea { font-family: var(--font); }
 /* Display font for headings and titles */
 h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
-.section-sub,.nav-name,.today-strip-daynum,.kpi-num,.kpi-label,
+.section-sub,.nav-name,.today-strip-daynum,
 .task-title,.modal-title,.detail-title { font-family: var(--font-disp); }
 
 /* ============================================================
@@ -496,6 +496,11 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   .sidebar-collapse-row-btn { display: none; }
   .main-content, .main-content.collapsed { margin-left: 0; padding: 0; width: 100%; }
   .mobile-header { display: flex; }
+  /* CRIT-001 (revised): offset every active page below the fixed 62px mobile header.
+     Targeting .page.active (position:relative, in flex flow) rather than .main-content
+     so that flex:1 pages (Overview, Planner) and height:100vh pages (Board, People,
+     Resources, Reminders) all shift their top content down correctly. */
+  .page.active { padding-top: var(--nav-h); }
 }
 
 /* Restored Status & Toggle Styles */
@@ -666,33 +671,6 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .today-item-meta  { font-size: 11px; color: var(--text2); margin-top: 2px; }
 
 .today-empty { text-align: center; padding: 28px 20px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 4px; }
-
-/* ============================================================
-   KPI CARDS
-   ============================================================ */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
-  gap: 12px; margin-bottom: 32px;
-}
-.kpi-card {
-  background: var(--glass);
-  backdrop-filter: var(--blur-sm);
-  -webkit-backdrop-filter: var(--blur-sm);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  display: flex; flex-direction: column; gap: 6px;
-  position: relative; overflow: hidden;
-  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-}
-.kpi-card:hover { transform: translateY(-3px); box-shadow: var(--glow-card); }
-.kpi-accent { position: absolute; top: 0; left: 0; width: 100%; height: 2px; border-radius: var(--radius) var(--radius) 0 0; }
-.kpi-glow { position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; border-radius: 50%; opacity: 0.08; filter: blur(20px); }
-.kpi-icon  { font-size: 20px; line-height: 1; position: relative; }
-.kpi-label { font-size: 12px; color: var(--text2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; position: relative; }
-.kpi-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; line-height: 1; position: relative; }
-.kpi-sub   { font-size: 12px; color: var(--muted); position: relative; }
 
 /* ============================================================
    PEOPLE TAB & PERSON DETAIL MODAL
@@ -1068,12 +1046,8 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .gt-card:hover { border-color: var(--border2); background: var(--glassh); transform: translateY(-1px); box-shadow: var(--glow-card); }
 .gt-card-row1 { display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
 .gt-card-row1-right { margin-left: auto; flex-shrink: 0; }
-.gt-card-row2 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-.gt-card-id-sm { font-size: 8px; font-family: var(--mono); color: var(--muted); }
 .gt-card-title { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); margin-bottom: 2px; }
-.gt-card-row4 { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; min-height: 0; }
 .gt-card-desc-sm { font-size: 11px; color: var(--text2); line-height: 1.4; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex: 1; min-width: 0; }
-.gt-card-tags-right { display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; flex-shrink: 0; max-width: 45%; }
 .gt-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .gt-card-footer-left { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .gt-card-footer-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
@@ -1432,9 +1406,11 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 }
 /* Kanban context pill strip */
 .kb-pill-strip {
-  display: flex; align-items: center; flex-wrap: wrap;
+  display: flex; align-items: center; flex-wrap: nowrap; /* P5-MOB-R001c: was wrap — caused multi-line rows on mobile */
+  overflow-x: auto; scrollbar-width: none;               /* horizontal scroll instead of wrapping */
   gap: 6px; margin-bottom: 10px; flex-shrink: 0;
 }
+.kb-pill-strip::-webkit-scrollbar { display: none; }    /* hide scrollbar visually on WebKit */
 .kb-pill {
   display: flex; align-items: center; gap: 6px;
   padding: 6px 14px; border-radius: 20px; cursor: pointer;
@@ -1875,14 +1851,6 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 /* Wide modal for archive drawer */
 .modal-wide { max-width: min(860px, 95vw); }
 
-/* Compact KPI grid in Kanban (slightly smaller cards) */
-.kpi-grid-compact .kpi-card {
-  padding: 14px 16px;
-}
-.kpi-grid-compact .kpi-value { font-size: 26px; }
-.kpi-grid-compact .kpi-icon  { font-size: 18px; }
-.kpi-grid-compact .kpi-label { font-size: 10px; }
-.kpi-grid-compact .kpi-sub   { font-size: 10px; }
 /* Active today badge on person cards */
 .person-card-active { border-color: rgba(52,211,153,0.25); }
 .person-active-dot {
@@ -2056,7 +2024,6 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 @media (max-width: 1023px) {
   /* Weekly: 4 cols Mon-Thu, then Fri-Sun wrap to second row */
   
-  .kpi-grid  { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
   .cal-label { font-size: 8px; padding: 1px 4px; }
 }
 
@@ -2093,7 +2060,6 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   .mobile-header { display: flex; }
   .form-row { grid-template-columns: 1fr; }
   .section  { padding: 20px 14px; }
-  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   /* Kanban: 2 columns on tablet — revert to page scroll */
   #page-board.active { overflow-y: auto; flex: none; height: auto; min-height: 100vh; }
   .kanban-board-wrap { flex: none; overflow: visible; }
@@ -2112,7 +2078,6 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   .cal-cell { padding: 3px; }
   .cal-day-label { font-size: 8px; letter-spacing: 0; }
   .cal-title { font-size: 14px; }
-  .kpi-grid  { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   /* Kanban: 2 columns still — page scroll */
   .kanban-wrap { grid-template-columns: repeat(2, 1fr); gap: 8px; overflow: visible; }
   .section { padding: 16px 12px; }
@@ -2135,8 +2100,6 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   .cal-date  { font-size: 10px; }
   .modal { max-width: 100%; border-radius: 16px 16px 0 0; margin: auto 0 0; max-height: 92vh; }
   .modal-backdrop { align-items: flex-end; padding: 0; }
-  .kpi-grid  { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .kpi-value { font-size: 24px; }
   .person-grid { grid-template-columns: 1fr; }
   .section { padding: 14px 10px; }
   .section-title { font-size: 22px; }
@@ -2144,7 +2107,6 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   
 }
 
-[data-theme="light"] .kpi-card { box-shadow: 10px 10px 26px rgba(130,100,60,0.2), -5px -5px 14px rgba(255,255,255,1); background:#FFFFFF; border-color:rgba(215,200,180,0.5); }
 /* ============================================================
    OVERVIEW FILTER PILLS & CARD ANIMATIONS
    ============================================================ */
@@ -2173,7 +2135,7 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 /* Sub-filter pill row — slides down under primary strip */
 .gt-subpill-strip {
   display: flex; align-items: center; gap: 5px;
-  flex-wrap: nowrap; overflow-x: visible; scrollbar-width: none;
+  flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; /* MED-003: was overflow-x:visible — risked horizontal page overflow on narrow screens */
   padding: 0; flex-shrink: 0;
   margin-bottom: 10px;
 }
@@ -2278,6 +2240,30 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   height: 100vh;
   overflow-y: auto;
   box-sizing: border-box;  scrollbar-gutter: stable;
+}
+/* LOW-001: reduce generous 24px padding on phones — placed AFTER base rule so cascade wins */
+@media (max-width: 479px) {
+  #page-people.active,
+  #page-directories.active,
+  #page-reminders.active { padding: 16px; }
+}
+/* P5-MOB-R001c CRIT-001: offset full-height pages below the fixed 62px mobile header.
+   .page.active { padding-top: var(--nav-h) } (in the 900px block above) is overridden by
+   the higher-specificity (1,1,0) ID rules above. These rules have the same specificity
+   but come later in the stylesheet, so they win via cascade order.
+   Board's existing top padding is 0 (padding: 24px 24px 0), so +24px makes it symmetrical.
+   People/Dir/Reminders existing top padding is 24px, so calc adds the header height on top.
+   On ≤479px: LOW-001 sets padding:16px (all sides); this rule then overrides only padding-top,
+   leaving the reduced 16px side+bottom padding from LOW-001 intact. */
+@media (max-width: 900px) {
+  #page-board.active {
+    padding-top: calc(var(--nav-h) + 24px);
+  }
+  #page-people.active,
+  #page-directories.active,
+  #page-reminders.active {
+    padding-top: calc(var(--nav-h) + 24px);
+  }
 }
 
 
@@ -3007,12 +2993,6 @@ function getPri(priority) {
   if (!isLight) return p;
   return { ...p, bg:p.lightBg, text:p.lightText, bar:p.lightBar };
 }
-function getEntry(priority) {
-  const e = ENTRY_COLORS[priority] || ENTRY_COLORS.Low;
-  const isLight = !isDarkTheme();
-  if (!isLight) return e;
-  return { ...e, bg:e.lightBg, border:e.lightBorder, text:e.lightText };
-}
 function getStickyColor(colorIdx) {
   const idx = Math.max(0, parseInt(colorIdx) || 0) % STICKY_COLORS.length;
   const c = STICKY_COLORS[idx] || STICKY_COLORS[0];
@@ -3174,30 +3154,6 @@ function toast(msg, type='success') {
   el.innerHTML = `<span class="toast-icon">${type==='success'?'✅':type==='info'?'ℹ️':'❌'}</span>${msg}`;
   wrap.appendChild(el);
   setTimeout(()=>el.remove(), 3000);
-}
-
-function kpis() {
-  const tasks    = getTasks();
-  const todayStr = fmtDate(TODAY);
-
-  // Full week: Monday–Sunday of the current week
-  const weekStart = new Date(TODAY);
-  weekStart.setDate(TODAY.getDate() - ((TODAY.getDay()+6)%7)); // Monday
-  const weekEnd   = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6); // Sunday
-  const weekStartStr = fmtDate(weekStart);
-  const weekEndStr   = fmtDate(weekEnd);
-
-  const total       = tasks.length;
-  const done        = tasks.filter(x=>parseStatus(x.status).state==='Completed').length;
-  const inProgress  = tasks.filter(x=>{ const s=parseStatus(x.status).state; return s==='In Progress'||s==='Review'; }).length;
-  const pending     = tasks.filter(x=>{ const s=parseStatus(x.status).state; return s==='Backlog'||s==='To Do'; }).length;
-  const overdue     = tasks.filter(x=>x.dueDate && daysUntil(x.dueDate)<0 && parseStatus(x.status).state!=='Completed').length;
-  const dueToday    = tasks.filter(x=>x.dueDate===todayStr && parseStatus(x.status).state!=='Completed').length;
-  const dueThisWeek = tasks.filter(x=>x.dueDate>=weekStartStr && x.dueDate<=weekEndStr && parseStatus(x.status).state!=='Completed').length;
-  const highPri     = tasks.filter(x=>(x.priority==='High'||x.priority==='Critical') && parseStatus(x.status).state!=='Completed').length;
-  const rate        = total ? Math.round(done/total*100) : 0;
-  return { total, done, inProgress, pending, overdue, dueToday, dueThisWeek, highPri, rate };
 }
 
 const personTasks = name => getTasks().filter(t => { const parts = splitAssigneeNames(t.assignees); return parts.includes(name); });
@@ -3912,152 +3868,6 @@ function renderAll() {
   try { renderStickyLayer(); } catch(e) { console.error('renderStickyLayer failed:', e); }
 }
 
-/* ── OVERVIEW ── */
-
-// ── KPI CARDS ────────────────────────────────────────────────
-// getKpiCards: computes live metrics from STATE.items
-// kpiCardsHTML: renders clickable KPI card grid HTML
-// openKpiTaskList: drill-down modal showing matching tasks
-function getKpiCards() {
-  const k = kpis();
-  const todayStr = fmtDate(TODAY);
-  const weekStart = new Date(TODAY); weekStart.setDate(TODAY.getDate() - ((TODAY.getDay()+6)%7));
-  const weekEnd   = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 4);
-  const ws = fmtDate(weekStart), we = fmtDate(weekEnd);
-  return [
-    { label:'Total Tasks',    value:k.total,       color:'var(--accent2)', glow:'#285C70', icon:'📋', sub:`${k.done} completed`,
-      filter: () => getTasks() },
-    { label:'Completed',      value:k.done,        color:'var(--green)',   glow:'#34D399', icon:'✅', sub:`${k.rate}% of all tasks`,
-      filter: () => getTasks().filter(t=>parseStatus(t.status).state==='Completed') },
-    { label:'In Progress',    value:k.inProgress,  color:'var(--yellow)',  glow:'#FBBF24', icon:'🔄', sub:'working + in review',
-      filter: () => getTasks().filter(t=>parseStatus(t.status).state==='In Progress'||parseStatus(t.status).state==='Review') },
-    { label:'Pending',        value:k.pending,     color:'var(--muted)',   glow:'#64748B', icon:'📭', sub:'backlog + to do',
-      filter: () => getTasks().filter(t=>parseStatus(t.status).state==='Backlog'||parseStatus(t.status).state==='To Do') },
-    { label:'Overdue',        value:k.overdue,     color:'var(--red)',     glow:'#F87171', icon:'🔴', sub:'need attention',
-      filter: () => getTasks().filter(t=>t.dueDate && daysUntil(t.dueDate)<0 && t.status!=='Completed') },
-    { label:'Due Today',      value:k.dueToday,    color:'var(--orange)',  glow:'#FB923C', icon:'📅', sub:'today',
-      filter: () => getTasks().filter(t=>t.dueDate===todayStr && t.status!=='Completed') },
-    { label:'Due This Week',  value:k.dueThisWeek, color:'var(--cyan)',    glow:'#22D3EE', icon:'📆', sub:'Mon–Sun this week',
-      filter: () => getTasks().filter(t=>t.dueDate>=ws && t.dueDate<=we && t.status!=='Completed') },
-    { label:'High Priority',  value:k.highPri,     color:'var(--purple)',  glow:'#C084FC', icon:'🚨', sub:'critical + high',
-      filter: () => getTasks().filter(t=>(t.priority==='High'||t.priority==='Critical') && t.status!=='Completed') },
-  ];
-}
-
-// Render KPI cards HTML — clickable, each opens a task list modal
-function kpiCardsHTML(cards) {
-  return cards.map((c, idx) => `<div class="kpi-card" onclick="openKpiTaskList(${idx})" style="cursor:pointer" title="Click to see tasks">
-    <div class="kpi-accent" style="background:${c.glow}"></div>
-    <div class="kpi-glow" style="background:${c.glow}"></div>
-    <span class="kpi-icon">${c.icon}</span>
-    <span class="kpi-label">${c.label}</span>
-    <span class="kpi-value" style="color:${getColColor(c)}">${c.value}</span>
-    <span class="kpi-sub">${c.sub}</span>
-  </div>`).join('');
-}
-
-// KPI click → modal showing the matching tasks
-function openKpiTaskList(cardIdx) {
-  const cards = getKpiCards();
-  const card  = cards[cardIdx];
-  const tasks = card.filter();
-  _renderKpiTaskList(cardIdx, tasks, card);
-}
-
-function _renderKpiTaskList(cardIdx, tasks, card) {
-  const listHTML = tasks.length === 0
-    ? `<div style="text-align:center;padding:28px 0;color:var(--muted)"><div style="font-size:28px;margin-bottom:8px">${card.icon}</div><div>No tasks here</div></div>`
-    : tasks.map(t => {
-        const pri  = getPri(t.priority);
-        const days = daysUntil(t.dueDate);
-        let dueLabel = '';
-        if (days !== null) {
-          if (days < 0)      dueLabel = `<span class="due-chip due-over">${Math.abs(days)}d Over</span>`;
-          else if (days===0) dueLabel = `<span class="due-chip due-today">Today</span>`;
-          else if (days<=2)  dueLabel = `<span class="due-chip due-warn">${days}d</span>`;
-          else               dueLabel = `<span class="due-chip due-ok">${days}d</span>`;
-        }
-        const tagsHTML = (t.tags||[]).slice(0,3).map(tag =>
-          `<button class="tag-btn t-tag" style="${(tc=>'background:'+tc.bg+';color:'+tc.text+';border-color:'+tc.border)(tagColor(tag))}" onclick="event.stopPropagation();_navTo(()=>openKpiTaskList(${cardIdx}),()=>openTagList('${tag}'))" title="View all #${tag} items"><span style="opacity:0.5">#</span>${tag}</button>`).join('');
-        const _tState = parseStatus(t.status).state || t.status;
-        const statusColor = { Backlog:'var(--muted)', 'To Do':'var(--accent2)', 'In Progress':'var(--cyan)', Review:'var(--yellow)', Completed:'var(--green)' }[_tState] || 'var(--muted)';
-        return `<div onclick="_navTo(()=>openKpiTaskList(${cardIdx}),()=>openKpiTaskDetail('${t.id}',${cardIdx}))"
-          style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${pri.bar||pri.bg};border-radius:11px;padding:12px 14px;cursor:pointer;transition:all 0.15s"
-          onmouseover="this.style.background='var(--glass2)'" onmouseout="this.style.background='var(--surface)'">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
-            <span style="font-size:8px;font-family:var(--mono);color:var(--muted)">${t.id}</span>
-            <span style="font-size:9px;padding:1px 7px;border-radius:20px;background:rgba(0,0,0,0.2);color:${statusColor};border:1px solid ${statusColor};opacity:0.85;font-weight:600">${_tState}</span>
-          </div>
-          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;${parseStatus(t.status).state==='Completed'?'text-decoration:line-through;opacity:0.6':''}">${t.title}</div>
-          ${t.desc ? `<div style="font-size:11px;color:var(--text2);margin-bottom:6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${t.desc}</div>` : ''}
-          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:6px">
-            <span class="t-tag" style="background:${pri.bg};color:${pri.text}">${t.priority}</span>
-            ${tagsHTML}
-          </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            ${renderAssigneeStack(t.assignees||'', false, t.type)}
-            <div style="margin-left:auto;display:flex;gap:4px;align-items:center">
-              ${dueLabel}
-            </div>
-          </div>
-        </div>`;
-      }).join('');
-
-  openModal(`
-    ${buildModalListHeader(card.icon, card.label, `${tasks.length} task${tasks.length!==1?'s':''} · click to view details`)}
-    <div style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;padding-right:4px">${listHTML}</div>
-    <div class="modal-actions" style="margin-top:16px"></div>`);
-}
-
-// Opens task detail inside the KPI flow — with a ‹ Back button to the KPI list
-function openKpiTaskDetail(taskId, kpiCardIdx) {
-  const item = STATE.items.find(i => i.id === taskId);
-  if (!item) return;
-
-  const typeIcon  = { task:'📋', event:'📆', entry:'📝' }[item.type] || '📄';
-  const typeLabel = { task:'Task', event:'Event', entry:'Entry' }[item.type] || item.type;
-  const pri = getPri(item.priority);
-
-  const row = (label, value) => value
-    ? `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value">${value}</span></div>`
-    : '';
-
-  const fmtDisplayDate = str => {
-    if (!str) return '';
-    const d = new Date(str + 'T00:00:00');
-    return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
-  };
-
-  const dateField  = item.type === 'task' ? item.dueDate : item.date;
-  const startField = item.type === 'task' ? item.startDate : '';
-  const tagsStr    = Array.isArray(item.tags) ? item.tags.join(', ') : (item.tags||'');
-  const timeStr    = fmtTimeRange(item.time, item.endTime);
-
-  openModal(`
-    ${buildModalDetailHeader(item, typeIcon, typeLabel, pri)}
-    <div class="detail-grid">
-      ${_buildDetailStatusRow(item)}
-      ${row(item.type === 'task' ? 'Due Date' : 'Date', fmtDisplayDate(dateField))}
-      ${row('Start Date', fmtDisplayDate(startField))}
-      ${row('Time', timeStr)}
-      ${row('Category', item.category)}
-      ${row('Project', item.project)}
-      ${row('Assignees', formatAssigneesDisplay(item))}
-      ${(()=>{
-        const tagArr = Array.isArray(item.tags)?item.tags:(item.tags||'').split(',').map(t=>t.trim()).filter(Boolean);
-        if(!tagArr.length) return '';
-        const tagBtns = tagArr.map(t=>`<button class="tag-btn" style="${(tc=>'background:'+tc.bg+';color:'+tc.text+';border-color:'+tc.border)(tagColor(t))}" onclick="_navTo(()=>openTEEDetail('${item.id}'),()=>openTagList('${t}'))" title="View all #${t} items"><span style="opacity:0.5">#</span>${t}</button>`).join(' ');
-        return `<div class="detail-row"><span class="detail-label">Tags</span><span class="detail-value" style="display:flex;flex-wrap:wrap;gap:4px">${tagBtns}</span></div>`;
-      })()}
-    </div>
-    ${item.desc  ? `<div style="margin:12px 0 4px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">Description</div><div style="font-size:13px;color:var(--text2);line-height:1.6;padding:10px;background:var(--glass);border:1px solid var(--border);border-radius:10px">${item.desc}</div>` : ''}
-    ${item.notes ? `<div style="margin:12px 0 4px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">Notes</div><div style="font-size:13px;color:var(--text2);line-height:1.6;padding:10px;background:var(--glass);border:1px solid var(--border);border-radius:10px">${item.notes}</div>` : ''}
-    <div class="modal-actions" style="margin-top:20px">
-      ${_backBtn()}
-      <button class="btn-primary" onclick="_navTo(()=>openKpiTaskDetail('${item.id}',${kpiCardIdx}),()=>openTEEModal('${item.id}'))">Edit</button>
-    </div>`);
-}
-
 function _addSubtaskToForm() {
   const input = document.getElementById('tee-subtask-new');
   if (!input) return;
@@ -4113,9 +3923,8 @@ function _subtaskChip(item) {
 function _modalCloseBtn(onClickExpr = 'clearNav()') {
   return `<button class="modal-close" onclick="${onClickExpr}">✕</button>`;
 }
-// Shared "detail view" modal header — used by openKpiTaskDetail,
-// openTodayItemDetail, and openTEEDetail. colorSwatch defaults to ''
-// for consumers that don't render one (e.g. tasks, KPI detail).
+// Shared "detail view" modal header — used by openTEEDetail.
+// colorSwatch defaults to '' for consumers that don't render one.
 function buildModalDetailHeader(item, typeIcon, typeLabel, pri, colorSwatch = '') {
   return `<div class="modal-title" style="align-items:flex-start;flex-direction:column;gap:8px">
       <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
@@ -4130,9 +3939,8 @@ function buildModalDetailHeader(item, typeIcon, typeLabel, pri, colorSwatch = ''
       <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${item.id}</div>
     </div>`;
 }
-// Shared "list view" modal header — used by _renderKpiTaskList,
-// openTodayTypeList, and _renderArchiveDrawer. subtitleHTML is passed
-// in already formatted (pluralization/counts computed by the caller).
+// Shared "list view" modal header — used by _renderArchiveDrawer.
+// subtitleHTML is passed in already formatted (pluralization/counts computed by the caller).
 function buildModalListHeader(icon, label, subtitleHTML) {
   return `<div class="modal-title">
       <div style="display:flex;align-items:center;gap:10px">
@@ -4204,7 +4012,7 @@ function _buildStatusBadge(t) {
 }
 // Detail-modal status row — renders the Status detail-row for item detail modals.
 // Includes the status button (with id for in-place DOM update) and optional doneAt suffix.
-// Used by openKpiTaskDetail(), openTodayItemDetail() (task-only), and openTEEDetail().
+// Used by openTEEDetail().
 function _buildDetailStatusRow(item) {
   const _sc = getStatusColor(getDisplayStatus(item)) || '#64748B';
   const {doneAt} = parseStatus(item.status);
@@ -4232,7 +4040,7 @@ function _buildTagChip(tag) {
 }
 // Detail-modal tag row — renders the Tags detail-row for item detail modals.
 // reopenExpr: string expression that reopens the current modal, e.g. "openTEEDetail('T-001')"
-// Used by openTodayItemDetail() and openTEEDetail().
+// Used by openTEEDetail().
 function _buildDetailTagRow(tags, reopenExpr) {
   const tagArr = Array.isArray(tags) ? tags : (tags||'').split(',').map(t=>t.trim()).filter(Boolean);
   if (!tagArr.length) return '';
@@ -4893,89 +4701,6 @@ function renderAssigneeStack(assigneesStr, compact, itemType) {
   const overflowEl = overflow > 0 ? `<div class="av av-contrib av-more" title="${overflow} more">+${overflow}</div>` : '';
 
   return `<div class="av-stack">${leadAvEl}${contribEls}${overflowEl}</div><span class="t-name">${leadFirst}${contributors.length > 0 ? ` +${contributors.length}` : ''}</span>`;
-}
-// openTodayTypeList: filtered list modal (tasks/events/entries)
-// openTodayItemDetail: detail view with ‹ Back to type list — with back button to Today tab
-function openTodayTypeList(type) {
-  const todayStr = fmtDate(TODAY);
-  const typeLabels = { task:'Tasks Due Today', event:"Today's Events", entry:"Today's Entries" };
-  const typeIcons  = { task:'📋', event:'📆', entry:'📝' };
-  const todayItems = itemsOnDate(todayStr).filter(i => i.type === type);
-
-  const listHTML = todayItems.length === 0
-    ? `<div style="text-align:center;padding:28px 0;color:var(--muted)">
-        <div style="font-size:28px;margin-bottom:8px">${typeIcons[type]}</div>
-        <div>Nothing here for today</div>
-       </div>`
-    : todayItems.map(i => {
-        const pri  = getPri(i.priority);
-        const days = i.type==='task' ? daysUntil(i.dueDate) : null;
-        let dueLabel = '';
-        if (days !== null) {
-          if (days < 0)      dueLabel = `<span class="due-chip due-over">${Math.abs(days)}d Over</span>`;
-          else if (days===0) dueLabel = `<span class="due-chip due-today">Today</span>`;
-        }
-        const timeStr = fmtTimeRange(i.time, i.endTime);
-        return `<div class="day-list-item" onclick="_navTo(()=>openTodayTypeList('${type}'),()=>openTodayItemDetail('${i.id}','${type}'))">
-          <span style="font-size:16px;flex-shrink:0">${typeIcons[type]}</span>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${i.title}</div>
-            <div style="font-size:11px;color:var(--text2);margin-top:2px">
-              ${timeStr ? `🕐 ${timeStr}` : ''}
-              ${i.assignee ? ` · ${i.assignee}` : ''}
-              ${i.status ? ` · ${i.status}` : ''}
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-            <span style="font-size:10px;padding:2px 7px;border-radius:20px;background:${pri.bg};color:${pri.text}">${i.priority}</span>
-            ${dueLabel}
-          </div>
-        </div>`;
-      }).join('');
-
-  openModal(`
-    ${buildModalListHeader(typeIcons[type], typeLabels[type], `${todayItems.length} item${todayItems.length!==1?'s':''}`)}
-    <div style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;padding-right:4px">${listHTML}</div>
-    <div class="modal-actions" style="margin-top:16px">
-      ${_backBtn()}
-      <button class="btn-primary" onclick="clearNav();openTEEModal(null,'${type}','${todayStr}')">+ Add ${type}</button>
-    </div>`);
-}
-
-// Opens detail from today type list with back button
-function openTodayItemDetail(itemId, type) {
-  const item = STATE.items.find(i => i.id === itemId);
-  if (!item) return;
-
-  const typeIcon  = { task:'📋', event:'📆', entry:'📝' }[item.type] || '📄';
-  const typeLabel = { task:'Task', event:'Event', entry:'Entry' }[item.type] || item.type;
-  const pri = getPri(item.priority);
-  const row = (label, value) => value ? `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value">${value}</span></div>` : '';
-  const fmtDisplayDate = str => { if (!str) return ''; return new Date(str+'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}); };
-  const dateField  = item.type==='task' ? item.dueDate : item.date;
-  const startField = item.type==='task' ? item.startDate : '';
-  const timeStr    = fmtTimeRange(item.time, item.endTime);
-  const tagsStr    = Array.isArray(item.tags) ? item.tags.join(', ') : (item.tags||'');
-  const colorSwatch = (item.type==='event'&&item.color) ? `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${item.color};margin-right:4px;vertical-align:middle"></span>` : '';
-
-  openModal(`
-    ${buildModalDetailHeader(item, typeIcon, typeLabel, pri, colorSwatch)}
-    <div class="detail-grid">
-      ${item.type==='task' ? _buildDetailStatusRow(item) : ''}
-      ${row(item.type==='task'?'Due Date':'Date', fmtDisplayDate(dateField))}
-      ${row('Start Date', fmtDisplayDate(startField))}
-      ${row('Time', timeStr)}
-      ${row('Category', item.category)}
-      ${row('Project', item.project)}
-      ${row('Assignees', formatAssigneesDisplay(item))}
-      ${_buildDetailTagRow(item.tags, `openTodayItemDetail('${item.id}','${type}')`)}
-    </div>
-    ${item.desc?`<div style="margin:12px 0 4px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">Description</div><div style="font-size:13px;color:var(--text2);line-height:1.6;padding:10px;background:var(--glass);border:1px solid var(--border);border-radius:10px">${item.desc}</div>`:''}
-    ${item.notes?`<div style="margin:12px 0 4px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">Notes</div><div style="font-size:13px;color:var(--text2);line-height:1.6;padding:10px;background:var(--glass);border:1px solid var(--border);border-radius:10px">${item.notes}</div>`:''}
-    <div class="modal-actions" style="margin-top:20px">
-      ${_backBtn()}
-      <button class="btn-primary" onclick="clearNav();openTEEModal('${item.id}')">Edit</button>
-    </div>`);
 }
 // ── Top-level helper: is person active today? ───────────────
 function isPersonActiveToday(p) {
@@ -7099,16 +6824,6 @@ function focusSticky(id) {
   el.style.zIndex = 950;
   el.style.boxShadow = '0 0 0 3px rgba(79,154,181,0.55), 6px 10px 28px rgba(0,0,0,0.5)';
   setTimeout(() => { el.style.boxShadow = ''; el.style.zIndex = ''; }, 2000);
-}
-
-function resetStickyPositions() {
-  STATE.stickies.forEach((s, i) => {
-    s.x = 20 + (i * 210);
-    s.y = 120;
-    saveSticky(s).catch(()=>{});
-  });
-  renderStickyLayer();
-  renderReminders();
 }
 
 function changeStickyColor(id, colorIdx) {
@@ -9493,13 +9208,6 @@ function drop(e, colId) {
    9. NAV & SCROLL
    ============================================================ */
 // ── NAVIGATION + THEME ───────────────────────────────────────
-function navScrollTo(id) {
-  const el = document.getElementById(`sec-${id}`);
-  if (!el) return;
-  const top = el.getBoundingClientRect().top + window.scrollY - 70;
-  window.scrollTo({ top, behavior: 'smooth' });
-}
-
 function calNav(dir) {
   STATE.calMonth += dir;
   if (STATE.calMonth > 11) { STATE.calMonth = 0; STATE.calYear++; }
