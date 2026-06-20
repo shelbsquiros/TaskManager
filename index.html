@@ -8,7 +8,9 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Public+Sans:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ── DESIGN TOKENS ── Dark mode variables ────────────────── */
+/* ============================================================
+   DESIGN TOKENS — Dark Mode
+   ============================================================ */
 :root {
   /* ── FONTS ── */
   --font:      'Public Sans', sans-serif;
@@ -46,6 +48,9 @@
   --shadow-sm: 0 4px 16px rgba(0,0,0,0.3);
   --glow-card: 0 0 0 1px rgba(79,154,181,0.2), 0 8px 24px rgba(40,92,112,0.15);
 }
+/* ============================================================
+   DESIGN TOKENS — Light Mode
+   ============================================================ */
 [data-theme="light"] {
   /* ── WARM PAPER+ — Light Mode ── */
   --green:     #16A34A;
@@ -71,7 +76,9 @@
   --glow-card: 0 0 0 1px rgba(13,148,136,0.15), 0 4px 16px rgba(13,148,136,0.08);
 }
 
-/* ── RESET + BASE ────────────────────────────────────────── */
+/* ============================================================
+   RESET & BASE STYLES
+   ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
@@ -177,6 +184,7 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   --sidebar-w: 240px;
   --sidebar-collapsed-w: 64px;
 }
+/* ── Sidebar width tokens above; full sidebar + layout rules below ── */
 
 .app-container {
   display: flex;
@@ -454,6 +462,7 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 }
 
 
+/* ── Status Indicators, Sync, Navigation Utilities ── */
 /* Offline state for the status dot */
 .nav-dot.offline {
   background: var(--muted);
@@ -500,7 +509,7 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .icon-toggle:hover { background: var(--glassh); color: var(--text); }
 
 /* ============================================================
-   SECTION LAYOUT
+   NAVIGATION & PAGE SECTION LAYOUT
    ============================================================ */
 .section { padding: 36px 28px 48px; min-height: unset; }
 .section-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 4px; display: flex; align-items: center; gap: 10px; line-height: 1.3; }
@@ -522,7 +531,9 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .caption-text { font-size: 12px; color: var(--muted); }
 /* Chip label stays small for UI density */
 
-/* ── TODAY OVERVIEW ─────────────────────────────────────── */
+/* ============================================================
+   TODAY / OVERVIEW TAB
+   ============================================================ */
 
 /* Side-by-side layout: date card | schedule | pinned notes */
 .today-layout {
@@ -656,7 +667,9 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 
 .today-empty { text-align: center; padding: 28px 20px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 4px; }
 
-/* ── KPI CARDS ────────────────────────────────────────────── */
+/* ============================================================
+   KPI CARDS
+   ============================================================ */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
@@ -681,7 +694,9 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .kpi-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; line-height: 1; position: relative; }
 .kpi-sub   { font-size: 12px; color: var(--muted); position: relative; }
 
-/* ── PERSON CARDS ─────────────────────────────────────────── */
+/* ============================================================
+   PEOPLE TAB & PERSON DETAIL MODAL
+   ============================================================ */
 .person-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(285px, 1fr)); gap: 16px; }
 .person-card {
   background: var(--glass);
@@ -787,9 +802,9 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .pdm-group-divider { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); padding: 8px 4px 4px; display: flex; align-items: center; gap: 8px; }
 .pdm-group-divider::after { content:''; flex:1; height:1px; background: var(--border); }
 
-/* ════════════════════════════════════════════════════════════
-   G.TAKE TODAY REDESIGN — task list + right panel + pill KPIs
-   ════════════════════════════════════════════════════════════ */
+/* ============================================================
+   TODAY REDESIGN LAYOUT — G.TAKE (pill strip, right panel, mini-calendar)
+   ============================================================ */
 .gt-layout {
   display: flex;
   flex-direction: row;
@@ -814,6 +829,11 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  /* P1-BUG002 (R001c): overflow:hidden is correct and required here.
+     The column is a flex child of .gt-layout (itself overflow:hidden, 100vh-bounded),
+     so it already has a bounded height — it cannot grow taller than the viewport.
+     The calendar must stay inside this bounded box, not overflow it.
+     The fix is in how notes and calendar share the available height (see below). */
   overflow: hidden;
   gap: 12px;
   padding: 0 24px 40px 16px;
@@ -821,11 +841,19 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
      sits fully above the FAB zone — FAB only overlaps the border below */
   border-left: 1px solid var(--border);
 }
-/* Notes section — scrolls independently */
+/* Notes section — fills remaining space above calendar; notes scroll internally */
 .gt-notes-section {
-  flex: none;                      /* natural height — grows with content */
-  max-height: calc(100% - 320px); /* cap: always leaves room for calendar below */
-  min-height: 80px;                /* minimum even when empty */
+  /* P1-BUG002 (R001c): was flex:none (natural height, max-height capped).
+     flex:none let the notes section grow with content until the max-height cap,
+     but max-height:calc(100% - 320px) requires the parent to have an explicit
+     height for % to resolve — it did not, so the cap was ineffective with many
+     notes, pushing the calendar out of the bounded column.
+     Fix: flex:1 + min-height:0 makes notes fill all available space in the column
+     after the calendar takes its flex-shrink:0 min-height:300px. Notes then
+     scroll internally via .gt-notes-list (overflow-y:auto, already in place).
+     The calendar is always anchored at the bottom within the bounded column. */
+  flex: 1;
+  min-height: 80px;               /* minimum even when empty; flex:1 fills the rest */
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -850,6 +878,12 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   flex-shrink: 0;
   /* min-height guarantees calendar is always fully visible even on short screens */
   min-height: 300px;
+  /* P1-BUG002: overflow:visible allows click events on calendar cells that fall
+     near the bottom of .gt-right-col (which has overflow:hidden) to register
+     correctly. Without this, bottom calendar rows are visually present but
+     outside the parent hit-test zone. Pinned notes clipping is unaffected
+     because notes live in .gt-notes-section, a sibling of .gt-cal-section. */
+  overflow: visible;
 }
 
 @media (max-width: 1099px) {
@@ -878,11 +912,21 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 }
 .tag-btn:hover { opacity: 0.75; transform: translateY(-1px); filter: brightness(1.2); }
 
-/* ── Floating Action Button (FAB) ── */
+/* ============================================================
+   FLOATING ACTION BUTTON (FAB)
+   ============================================================ */
 .fab-wrap {
   position: fixed; bottom: 28px; right: 28px;
   z-index: 8000; display: flex; flex-direction: column;
   align-items: flex-end; gap: 10px;
+  /* P1-BUG002 (R001d): .fab-wrap has no explicit width and its layout box extends
+     leftward far enough to overlap the right columns of the mini-calendar
+     (Thu/Fri/Sat area). With pointer-events defaulting to auto, the transparent
+     wrapper was intercepting clicks intended for calendar cells beneath it.
+     Fix: pointer-events:none on the wrap passes all clicks through to elements
+     below. The interactive children (.fab-main button and .fab-options.open)
+     restore pointer-events:auto for themselves and remain fully clickable. */
+  pointer-events: none;
 }
 .fab-wrap.hidden { display: none; }
 .fab-main {
@@ -895,6 +939,7 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   display: flex; align-items: center; justify-content: center;
   transition: all 0.2s; font-family: var(--font);
   line-height: 1;
+  pointer-events: auto; /* restored: parent .fab-wrap has pointer-events:none */
 }
 .fab-main:hover { background: rgba(40,92,112,1); transform: scale(1.08); }
 .fab-main.open { transform: rotate(45deg); background: rgba(40,92,112,1); }
@@ -919,7 +964,7 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .fab-option-icon { font-size: 16px; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--glass2); flex-shrink: 0; }
 .fab-option-label { font-size: 12px; font-weight: 600; color: var(--text); }
 
-/* ── Tag list modal ── */
+/* ── Tag List Modal ── */
 .tag-list-item {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; border-radius: 10px; cursor: pointer;
@@ -932,7 +977,9 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .tag-list-title { font-size: 13px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .tag-list-meta  { font-size: 10px; color: var(--text2); margin-top: 2px; font-family: var(--mono); }
 
-/* ── Subtasks ── */
+/* ============================================================
+   SUBTASKS
+   ============================================================ */
 .subtask-section { margin-top: 16px; }
 .subtask-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -1106,7 +1153,7 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .gt-pin-note:last-child { margin-bottom: 0; }
 .gt-pin-unpin { position: absolute; top: 6px; right: 7px; width: 16px; height: 16px; border-radius: 4px; background: rgba(0,0,0,0.15); border: none; cursor: pointer; font-size: 9px; color: inherit; opacity: 0.55; display: flex; align-items: center; justify-content: center; }
 
-/* Mini calendar */
+/* ── Mini-Calendar (right panel) ── */
 .gt-mini-cal { }
 .gt-mc-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; margin-top: 6px; }
 .gt-mc-dlbl { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); text-align: center; padding-bottom: 3px; }
@@ -1123,10 +1170,6 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .gt-mc-legend { display: flex; gap: 12px; margin-top: 6px; font-size: 9px; color: var(--muted); }
 .gt-mc-legend span { display: flex; align-items: center; gap: 4px; }
 .gt-mc-legend i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-
-/* ============================================================
-   WEEKLY PLANNER — responsive
-   ============================================================ */
 
 /* ============================================================
    STICKY NOTES — draggable, floating
@@ -1357,6 +1400,9 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .av-count   { font-size: 9px; color: var(--muted); font-weight: 600; margin-left: 4px; }
 [data-theme="light"] .av-contrib { border-color: var(--bg); }
 [data-theme="light"] .av-more    { border-color: var(--bg); background: rgba(0,0,0,0.08); color: var(--text2); }
+/* ============================================================
+   CHIPS, BADGES & DUE INDICATORS
+   ============================================================ */
 .due-chip { font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 20px; font-family: var(--mono); }
 /* Group 1 — Context chips (label the date relationship) */
 .ctx-chip { font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 20px; white-space: nowrap; letter-spacing: 0.02em; }
@@ -1367,6 +1413,13 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .due-warn { background: rgba(251,191,36,0.12);  color: var(--yellow); }
 .due-over { background: rgba(248,113,113,0.12); color: var(--red); }
 .due-today{ background: rgba(40,92,112,0.18);  color: var(--accent2); }
+/* P5-BUG001: Light-theme overrides for legacy due-chip classes.
+   Dark-mode default backgrounds are too faint on the warm cream light-mode
+   card surface. Values match CHIP_COLORS lightBg/lightText entries exactly. */
+[data-theme="light"] .due-ok    { background: rgba(22,163,74,0.1);   color: #166534; }
+[data-theme="light"] .due-warn  { background: rgba(180,83,9,0.1);    color: #B45309; }
+[data-theme="light"] .due-over  { background: rgba(220,38,38,0.1);   color: #B91C1C; }
+[data-theme="light"] .due-today { background: rgba(14,116,144,0.12); color: #0E7490; }
 .kanban-add-btn { width: calc(100% - 20px); margin: auto 10px 10px; height: 32px; border: 1px dashed var(--border2); flex-shrink: 0; background: transparent; border-radius: 9px; color: var(--muted); font-size: 12px; font-family: var(--font); cursor: pointer; transition: all 0.15s; }
 .kanban-add-btn:hover { border-color: var(--accent); color: var(--accent); }
 .kanban-filter-bar {
@@ -1468,7 +1521,9 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .kanban-filter-bar input::placeholder { color: var(--muted); }
 .filter-count { font-size: 11px; color: var(--muted); margin-left: auto; }
 
-/* ── DIRECTORIES ──────────────────────────────────────────── */
+/* ============================================================
+   DIRECTORIES / RESOURCES TAB
+   ============================================================ */
 .dir-tabs { display: flex; gap: 6px; margin-bottom: 20px; }
 .dir-tab { padding: 7px 16px; border-radius: 10px; background: var(--glass); border: 1px solid var(--border2); color: var(--text2); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 6px; backdrop-filter: var(--blur-sm); }
 .dir-tab.active { background: rgba(40,92,112,0.2); color: var(--accent2); border-color: var(--bordera); }
@@ -1541,7 +1596,9 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 }
 .toggle-switch.on .toggle-knob { left: 18px; }
 
-/* ── REMINDERS TAB ────────────────────────────────────────── */
+/* ============================================================
+   REMINDERS TAB
+   ============================================================ */
 .reminders-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -1646,7 +1703,7 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 }
 
 /* ============================================================
-   PLANNER VIEW TOGGLE
+   MODALS & FORMS
    ============================================================ */
 
 /* TEE detail view */
@@ -1982,7 +2039,9 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   display: flex; flex-direction: column;
   flex: 1; min-height: 0; overflow: hidden;
 }
-/* ── RESPONSIVE BREAKPOINTS ───────────────────────────────── */
+/* ============================================================
+   RESPONSIVE BREAKPOINTS
+   ============================================================ */
 
 /* ── Large desktop (1400px+) ── */
 @media (min-width: 1400px) {
@@ -2086,7 +2145,9 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 }
 
 [data-theme="light"] .kpi-card { box-shadow: 10px 10px 26px rgba(130,100,60,0.2), -5px -5px 14px rgba(255,255,255,1); background:#FFFFFF; border-color:rgba(215,200,180,0.5); }
-/* ── 3-Group Filter System ─────────────────────────────── */
+/* ============================================================
+   OVERVIEW FILTER PILLS & CARD ANIMATIONS
+   ============================================================ */
 
 /* Primary group pills — larger, more prominent */
 .gt-primary-pill {
@@ -2220,7 +2281,7 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 }
 
 
-/* ── Light mode accent overrides for interactive states ── */
+/* ── Light Mode: Interactive State Overrides ── */
 [data-theme="light"] .pdm-tab.active { background: rgba(13,148,136,0.12); color: var(--accent2); border-color: rgba(13,148,136,0.25); }
 [data-theme="light"] .gt-fchip.active { background: rgba(13,148,136,0.12); color: var(--accent2); border-color: rgba(13,148,136,0.25); }
 [data-theme="light"] .dir-tab.active { background: rgba(13,148,136,0.12); color: var(--accent2); border-color: rgba(13,148,136,0.25); }
@@ -2228,7 +2289,9 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 [data-theme="light"] .toast.info { border-color: rgba(13,148,136,0.4); }
 
 
-/* ── Planner Tab — Day / Week / Month rebuild ──────────────────────── */
+/* ============================================================
+   PLANNER TAB — Day / Week / Month Views
+   ============================================================ */
 
 /* Hero */
 .planner-hero { margin-bottom: 14px; flex-shrink: 0; padding: 24px 24px 0; }
@@ -2518,7 +2581,7 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 }
 .planner-time-grid { display: flex; flex-direction: column; flex-shrink: 0; width: 100%; }
 .planner-time-row {
-  display: flex; height: 48px;
+  display: flex; min-height: 48px; /* P1-BUG003: was height:48px — fixed height caused same-time items to overlap */
   border-bottom: 0.5px solid var(--border);
   flex-shrink: 0;
 }
@@ -7696,6 +7759,13 @@ function renderDirectories() {
   const _searchPh  = 'Search ' + groupLabel.toLowerCase() + '…';
 
   // ── Render ────────────────────────────────────────────────────
+  // P1-BUG001: renderDirectories() replaces dirSection.innerHTML on every
+  // keystroke, destroying and recreating #dir-search-input — causing focus
+  // loss after each character. Capture focus state before replacement and
+  // restore after so search typing is continuous.
+  const _prevActive    = document.activeElement;
+  const _searchFocused = _prevActive && _prevActive.id === 'dir-search-input';
+
   document.getElementById('dirSection').innerHTML = ''
     + '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:16px;flex-shrink:0;flex-wrap:wrap">'
     + '<span style="font-size:26px;font-weight:800;letter-spacing:-0.03em;line-height:1.1;color:var(--text);font-family:var(--font-disp)">Resources</span>'
@@ -7711,6 +7781,22 @@ function renderDirectories() {
     + _sortHTML
     + '</div>'
     + '<div class="dir-grid" style="padding-bottom:40px">' + cardsHTML + '</div>';
+
+  // Restore focus and cursor if search input was active before render.
+  // P1-BUG001 (follow-up): the previous fix captured selectionStart/End from
+  // the old (destroyed) input before replacement. On the first character typed
+  // into an empty field, selectionStart was 0, so setSelectionRange(0,0) placed
+  // the cursor before the new character — causing the second character to prepend
+  // rather than append, making it appear the first character didn't filter.
+  // Fix: always place the cursor at the end of the new input value after restore.
+  if (_searchFocused) {
+    const _newInp = document.getElementById('dir-search-input');
+    if (_newInp) {
+      _newInp.focus();
+      const _len = _newInp.value.length;
+      _newInp.setSelectionRange(_len, _len);
+    }
+  }
 }
 
 function confirmAction(message, confirmLabel, onConfirm, danger=true) {
