@@ -1754,23 +1754,100 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   transition: all 0.15s; flex-shrink: 0;
 }
 .status-badge-btn:hover { opacity: 0.75; transform: translateY(-1px); }
+/* P4-R003b: pill-strip styled type selector, visual language aligned with .kb-pill */
 .tee-type-tabs {
-  display: flex; gap: 4px; margin-bottom: 16px; padding: 0; width: 100%;
-  background: none; border: none;
+  display: flex; gap: 4px; margin-bottom: 16px; padding: 4px; width: 100%;
+  background: var(--glass); border: 1px solid var(--border); border-radius: 999px;
 }
 
 .tee-type-btn {
-  flex: 1; height: 36px; padding: 0 8px; border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--glass); color: var(--text2); font-family: var(--font);
-  font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.18s;
-  text-align: center;
+  flex: 1; height: 32px; padding: 0 8px; border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent; color: var(--text2); font-family: var(--font-disp);
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.18s;
+  text-align: center; text-transform: uppercase; letter-spacing: 0.03em;
 }
-.tee-type-btn:hover { background: var(--glass2); color: var(--text); border-color: var(--border2); }
+.tee-type-btn:hover { background: var(--glass2); color: var(--text); }
 .tee-type-btn.active {
-  background: var(--accent); color: #fff;
-  border-color: var(--accent);
-  box-shadow: 0 2px 10px rgba(40,92,112,0.35);
+  background: rgba(40,92,112,0.18); color: var(--accent2);
+  border-color: var(--accent2); font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+/* P4-R008b: Unified Top Identity Bar (P4-D017 follow-up, replaces the r008a
+   grid-based layout exploration, which was never accepted/promoted) — Type,
+   Priority, and Status are now compact pill-shaped dropdown triggers, visually
+   matching the app's existing subfilter pills (.kb-dropdown-btn, e.g. the
+   Reminders/Kanban "All Dates ▼"/"All Tags ▼" pattern) rather than large
+   segmented tabs (.tee-type-tabs/.tee-type-btn, left in place above/unused by
+   this layout but not removed) or .form-select-styled buttons. Kept in the TEE
+   namespace (not reusing .kb-dropdown-btn directly) since this is a separate
+   subsystem with its own popover implementation (openTEETypeDropdown/
+   openTEEStatusDropdown/openTEEPriorityDropdown all reuse .status-dropdown/
+   .status-dropdown-item for the popover itself — only the closed-state trigger
+   button gets this new pill styling). */
+/* P4-R008b-fix2: pill emphasis polish — clearer resting border (--border2
+   instead of the plainer --border), explicit hover/focus states, and a fixed
+   min-height matching the app's uniform 36px button height for visual
+   consistency with the rest of the control system. Still a compact subfilter-
+   style pill, not a heavy button. */
+.tee-identity-pill {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  flex: 1; min-width: 0; min-height: 36px; box-sizing: border-box;
+  padding: 6px 14px; border-radius: 20px; cursor: pointer;
+  border: 1px solid var(--border2); background: var(--glass);
+  font-size: 13px; font-weight: 600; color: var(--text2);
+  white-space: nowrap; transition: all 0.18s;
+  font-family: var(--font-disp);
+}
+.tee-identity-pill:hover { background: var(--glass2); border-color: var(--bordera); color: var(--text); }
+.tee-identity-pill:focus { outline: none; border-color: var(--accent2); }
+.tee-identity-pill .status-dot { flex-shrink: 0; }
+/* Left-side content (dot/icon + value) is grouped in one flex child so
+   justify-content:space-between on the pill only has to split two things —
+   this group, and the chevron — pushing the chevron to the pill's far right
+   regardless of how many elements sit on the left. */
+.tee-identity-pill-main { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; }
+.tee-identity-pill-label { overflow: hidden; text-overflow: ellipsis; }
+.tee-identity-pill-chevron { font-size: 9px; opacity: 0.6; flex-shrink: 0; }
+/* P4-R008b-fix2: the "Type"/"Priority"/"Status" descriptor now renders OUTSIDE
+   the pill (fix1 put it inside the pill as .tee-identity-pill-tag — rejected
+   by the owner: pills must carry only the value/icon/dot/chevron). Reuses
+   .tee-side-label verbatim, the same class already used for Category/Tags/
+   date-field side labels elsewhere in this form, so the label matches the
+   form's existing field-label language exactly. Each group is an inline flex
+   pair — label first (flex-shrink:0, from .tee-side-label itself), pill
+   second (flex:1, fills the remaining column width) — so label and pill
+   always sit on the same row together, never stacked. */
+.tee-identity-group { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* Title row (full-width, primary) sits above this row. Type/Priority/Status
+   share a 3-column grid — the Priority+Status wrapper uses display:contents so
+   its two groups become direct grid items alongside Type's, giving three real
+   grid columns in DOM order (Type, then Priority, then Status — always in
+   that order, both for the task branch and the event/entry branch above).
+   P4-R008b-fix3: columns changed from a flat repeat(3,1fr) to minmax(floor,1fr)
+   per column, each floor measured against that group's own worst-case content
+   plus its side-label (Type: icon + "Event", the longest Type value, beside
+   the short "TYPE" label — 140px; Priority: "Medium", the longest Priority
+   value in practice, beside the wider "PRIORITY" label — 178px; Status:
+   "Completed", the longest Status value, beside "STATUS" — 190px). All three
+   columns keep an equal 1fr flex factor, so CSS Grid's track-sizing algorithm
+   only falls back to a column's floor once an even three-way split would
+   otherwise size it below that floor: with room to spare (Pinned Notes
+   closed) the equal split already clears every floor and the row renders as
+   three genuinely equal columns, exactly like the old repeat(3,1fr); under
+   real width pressure (Pinned Notes open) Priority/Status hit their floors
+   first (they're the ones an even split would otherwise starve) while Type,
+   whose floor is smallest, is the one left absorbing/giving up the remaining
+   slack. On mobile the grid collapses to one column per group; each group
+   itself stays an inline flex row (label beside pill), never stacked. */
+.tee-identity-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(178px, 1fr) minmax(190px, 1fr);
+  gap: 14px; margin-bottom: 14px;
+}
+.tee-identity-subrow { display: contents; }
+@media (max-width: 767px) {
+  .tee-identity-row { grid-template-columns: 1fr; gap: 8px; }
 }
 
 /* ============================================================
@@ -1879,35 +1956,107 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   border: 1px solid rgba(127,138,167,0.20);
   padding: 1px 6px; border-radius: 20px; white-space: nowrap; line-height: 1.5;
 }
+/* P4-R003c-v6: TEE-specific header/body shell (P4-D006 Option B, TEE-local only —
+   shared .modal CSS is NOT touched). .modal itself still owns max-height:90vh +
+   overflow-y:auto as a safety-net fallback, but in normal operation .tee-modal-shell
+   below locally mirrors that same budget so its flex:1 body never actually needs
+   to grow past it — the body scrolls internally instead, with the header
+   (title+close) and overall shell height staying fixed/visible.
+   v6 fix: the global rule `*{box-sizing:border-box}` (confirmed present in this
+   file) means .modal's own `max-height:90vh` already includes its 28px*2 padding
+   AND its 1px*2 border in that budget — v5's calc(90vh - 56px) accounted for the
+   padding but forgot the 2px border, which was enough overflow on some viewports
+   to trigger .modal's own overflow-y:auto (the reported "3rd scrollbar"). Fixed
+   to subtract 60px (56px padding + 2px border + 2px rounding-safety margin).
+   This still duplicates knowledge of .modal's box model into a TEE-local rule
+   rather than editing .modal itself; if .modal's padding/border/max-height ever
+   changes, this calc() should be revisited (see report). */
+.tee-modal-shell { display: flex; flex-direction: column; max-height: calc(90vh - 60px); }
+.tee-modal-header { flex-shrink: 0; }
+
 /* TEE modal with pinned notes side panel */
-.tee-modal-with-panel { display: flex; gap: 0; align-items: stretch; }
+.tee-modal-with-panel { display: flex; gap: 0; align-items: stretch; flex: 1; min-height: 0; }
 .tee-modal-with-panel.panel-hidden { display: block; }
 .tee-modal-with-panel.panel-hidden .tee-panel-side { display: none; }
 .tee-modal-form { flex: 1; min-width: 0; }
+/* P4-R005: desktop only — .tee-modal-form becomes a flex column with two children,
+   a scrolling .tee-modal-form-scroll wrapper (all fields) and a non-scrolling
+   .tee-modal-footer sibling after it, so the footer stays outside the scrolling
+   region instead of scrolling away with the fields. Scoped under .tee-modal-with-panel
+   (the desktop-only ancestor — this rule never applies when .tee-modal-form sits
+   inside .tee-modal-body-mobile) so mobile keeps its current plain block layout,
+   unchanged. The footer's width still tracks the form column's width in both
+   panel-open and panel-closed states because it's a direct child of .tee-modal-form. */
+.tee-modal-with-panel .tee-modal-form { display: flex; flex-direction: column; min-height: 0; }
+.tee-modal-with-panel .tee-modal-form-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
+/* Mobile only — form + accordion panel scroll together as a single body region. */
+.tee-modal-body-mobile { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
 
+/* P4-R003c-v4 (P4-D006 Option A + root-cause fix), refined in v5: two-layer
+   slot + sticky structure. CRITICAL FIX (carried from v4): the openModal
+   template closes </div> on .tee-modal-form BEFORE the handle/panel markup,
+   so they are true flex siblings of the form inside .tee-modal-with-panel.
+   v5 change: now that .tee-modal-with-panel's row height is genuinely bounded
+   (flex:1 inside the height-capped .tee-modal-shell above), the handle no
+   longer needs position:sticky to "find" the visible viewport — it can just
+   use align-self:center to sit centered within the row's own (now-bounded)
+   height, which visually reads as "center-right of the modal." The panel
+   keeps align-self:stretch (default) so it fills 100% of the available side
+   height instead of an artificial vh-based cap. */
+
+/* v6 fix: the handle's tight edge-gap (margin-right:-16px) must only apply when
+   the panel is CLOSED — applying it unconditionally (as in v5) pulled the handle
+   16px into the panel's own column, overlapping note cards once the panel was
+   open. :has(+ ...) is already an accepted technique in this file (see the
+   existing .modal:has(.tee-modal-with-panel) rule) — scoping the tight margin to
+   only fire when immediately followed by a *hidden* side-slot keeps the open
+   state completely overlap-free while still tightening the closed-state gap. */
+.tee-panel-handle-slot { flex-shrink: 0; align-self: center; margin-left: 8px; }
+.tee-panel-handle-slot:has(+ .tee-panel-side-slot.hidden) { margin-right: -16px; }
+.tee-panel-handle {
+  width: 34px; min-height: 230px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 16px 0;
+  border-radius: 999px;
+  background: rgba(40,92,112,0.55); border: 1px solid var(--accent2);
+  color: #fff; cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+.tee-panel-handle:hover { background: rgba(40,92,112,0.7); }
+.tee-panel-handle.active { background: var(--accent2); border-color: var(--accent2); }
+/* v6 fix: removed transform:rotate(180deg) — with plain writing-mode:vertical-rl
+   the first character of the label renders at the TOP and reads down naturally
+   (icon, then "Pinned Notes", then "(N)" within the same top-to-bottom string,
+   then the arrow below it as a separate element) — rotate(180deg) was flipping
+   this to read bottom-to-top/upside-down, the "reversed" text the owner saw. */
+.tee-panel-handle-label {
+  writing-mode: vertical-rl;
+  font-size: 12px; font-weight: 700; font-family: var(--font-disp);
+  letter-spacing: 0.6px; text-transform: uppercase;
+  white-space: nowrap;
+}
+.tee-panel-handle-arrow { font-size: 18px; font-weight: 700; line-height: 1; flex-shrink: 0; }
+
+.tee-panel-side-slot {
+  flex-shrink: 0; margin-left: 10px;
+  transition: width 0.2s, margin 0.2s, opacity 0.15s;
+}
+.tee-panel-side-slot.hidden {
+  width: 0; margin-left: 0; opacity: 0; pointer-events: none; overflow: hidden;
+}
 .tee-panel-side {
   width: 220px; flex-shrink: 0;
-  margin-left: 16px; /* gap replaces dividing line */
+  height: 100%;
   padding: 0;
   display: flex; flex-direction: column;
-  overflow: hidden; transition: width 0.2s, margin 0.2s, opacity 0.15s;
+  overflow: hidden;
 }
-.tee-panel-side.hidden {
-  width: 0; margin-left: 0; opacity: 0; pointer-events: none;
-}
-.tee-panel-side-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.tee-panel-side-body { flex: 1; overflow-y: auto; }
-
-/* 📌 toggle button in modal title — left of X */
-.tee-pinned-toggle-btn {
-  width: 28px; height: 28px; border-radius: 8px;
-  background: var(--glass2); border: 1px solid var(--border2);
-  color: var(--muted); font-size: 13px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 0.15s; flex-shrink: 0;
-}
-.tee-pinned-toggle-btn:hover,
-.tee-pinned-toggle-btn.active { background: rgba(40,92,112,0.18); color: var(--accent2); border-color: rgba(40,92,112,0.35); }
+.tee-panel-side-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0; }
+.tee-panel-side-body { flex: 1; overflow-y: auto; min-height: 0; }
+/* v7: Pinned Notes inside TEE Add/Edit is reference-only (product decision) —
+   .tee-panel-add-btn ("+ Add" header action, added in v6) removed along with
+   its only call site; note creation remains in the Reminders/Sticky Notes flow. */
 
 .tee-panel-mobile { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 10px; }
 .tee-panel-mobile-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -1926,6 +2075,171 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .tee-panel-note-text.expanded { display: block; overflow: visible; -webkit-line-clamp: unset; }
 .modal:has(.tee-modal-with-panel) { max-width: min(880px, 95vw); }
 
+/* TEE Add/Edit section headers — Details/Assign/Context/Execution (P4-R003f-v2: unnumbered, no accent bar, slightly stronger) */
+.tee-section-header {
+  font-size: 11px; font-weight: 700; color: var(--accent2);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin: 14px 0 5px;
+}
+.tee-section-header:first-of-type { margin-top: 4px; }
+/* Reserved spacing in the Context section for a future Links/related-URLs row — no control rendered yet */
+.tee-links-spacer { height: 4px; }
+
+/* ── TEE Add/Edit grouped form foundation (P4-R003f-v2) ─────────────────── */
+.tee-field-group {
+  background: rgba(40,92,112,0.06);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+[data-theme="light"] .tee-field-group {
+  background: rgba(255,255,255,0.72);
+  border-color: var(--border2);
+}
+.tee-field-group .form-group { margin-bottom: 0; }
+.tee-field-group .form-row   { margin-bottom: 0; }
+/* Type-zone containers inside grouped cards stack their children with gap */
+.tee-field-group > [id^="tee-type-fields"] { display: flex; flex-direction: column; gap: 10px; }
+/* Hide empty type-zone containers (Event context zone is empty) */
+.tee-field-group > [id^="tee-type-fields"]:empty { display: none; }
+/* Compact side-label layout: two fields side-by-side */
+.tee-compact-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.tee-compact-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tee-side-label {
+  font-size: 11px; font-weight: 600; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  flex-shrink: 0; white-space: nowrap;
+}
+.tee-compact-field .form-input,
+.tee-compact-field .form-select { flex: 1; min-width: 0; }
+/* P4-R006: TEE Add/Edit Status trigger — reuses the .form-select box model/sizing
+   (border, radius, padding, width:100%, the .tee-compact-field flex:1 rule above,
+   and the 767px mobile stacking rule below) so no new sizing rules are needed;
+   only the internal dot+label flex layout is additive. */
+.tee-status-trigger { display: flex; align-items: center; gap: 8px; text-align: left; }
+.tee-status-trigger .status-dot { flex-shrink: 0; }
+/* P4-R007: TEE Add/Edit Priority trigger — additive, mirrors .tee-status-trigger
+   above exactly (same .form-select box model/sizing reuse, same dot+label layout). */
+.tee-priority-trigger { display: flex; align-items: center; gap: 8px; text-align: left; }
+.tee-priority-trigger .status-dot { flex-shrink: 0; }
+/* Description and Notes: ~2 visible lines, scrolls internally */
+#tee-desc, #tee-notes { height: 54px; min-height: unset; resize: none; overflow-y: auto; }
+/* Mobile: compact pairs collapse to single column, side labels stack above */
+@media (max-width: 767px) {
+  .tee-compact-pair { grid-template-columns: 1fr; gap: 8px; }
+  .tee-compact-field { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .tee-compact-field .form-input,
+  .tee-compact-field .form-select { width: 100%; flex: none; }
+}
+
+/* ── TEE Context Section Compact-Field Layout (P4-R010-fix2) ──────────────
+   Back to the original side-label .tee-compact-pair/.tee-compact-field
+   style (reused as-is, unmodified) instead of fix1's 2-column CSS grid.
+   Row 1: Dept | Project (from #tee-type-fields-context, Task only — Entry
+   renders Project alone, Event renders nothing, all unchanged shapes besides
+   Dept/Project's order swap below). Row 2: Category | Tags-input, in that
+   DOM order — but see .tee-context-tags-field/.tee-context-category-field
+   below for why the VISUAL desktop order is reversed (Tags left, Category
+   right) while the DOM order stays Category-then-Tags, which is what lets
+   plain source-order mobile stacking put Category before the Tags block
+   with zero extra mobile-specific rules. Row 3: full-width tag chips (own
+   line, may grow as chips wrap). Row 4+: Notes, unchanged. */
+.tee-context-tags-field { order: 1; }
+.tee-context-category-field { order: 2; }
+@media (max-width: 767px) {
+  .tee-context-tags-field { order: 0; }
+  .tee-context-category-field { order: 0; }
+}
+
+/* ── TEE Tags Chip-Entry (P4-R010, refined P4-R010-fix1) ──────────────────
+   Dedicated namespace only — deliberately not sharing .sticky-tag-chip/
+   .sticky-tag-option (Sticky notes) or .people-picker/.chip-option/
+   .people-chip (Assignees/Participants), per P4-D020 §I/§J. #tee-tags stays
+   the single save-time value-holder (hidden) — saveTEEModal/saveTEE/
+   _teeRowToItem/saveArchiveItem all keep reading its .value unchanged.
+   Suggestions are a small popover anchored under the input via plain CSS
+   (position:absolute relative to .tee-tag-input-wrap) — not a caret-position
+   mirror popup — shown/hidden by JS toggling .tee-tag-suggestions-open.
+   Input row (label + search input) and chips row are now two separate,
+   independently-placed pieces (P4-R010-fix2) — see _buildTeeTagsInputField/
+   _buildTeeTagsChipsRow — so the chips row can be its own full-width line
+   in the Context card while the input stays paired with Category.
+
+   fix3: .tee-compact-field's flex-child sizing rule (`.tee-compact-field
+   .form-input, .tee-compact-field .form-select { flex:1; min-width:0 }`,
+   above) only matches a direct .form-input/.form-select — for Category
+   that IS the direct flex child, but for Tags the direct flex child is
+   .tee-tag-input-wrap (the input itself is nested a level deeper inside
+   it), so the wrap never grew and the visible input sat at content width.
+   Giving .tee-tag-input-wrap its own flex:1/min-width:0 below makes the
+   wrap (and so the input, which is width:100% of the wrap) fill the same
+   space Category's input fills. Also dropped .tee-tag-input's own
+   height:32px/font-size:12px override — it already carries the shared
+   .form-input class, so removing the override lets it inherit the exact
+   same padding/font-size/box model as Dept/Project/Category instead of a
+   smaller bespoke size. .tee-tag-suggestions already anchors via
+   left:0;right:0 against this same wrap, so widening the wrap also widens
+   the dropdown to match with no separate rule needed. */
+.tee-tag-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 28px; }
+.tee-tag-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  border: 1px solid; white-space: nowrap;
+}
+.tee-tag-chip-remove {
+  background: none; border: none; cursor: pointer; padding: 0;
+  font-size: 12px; font-weight: 700; line-height: 1; color: inherit; opacity: 0.7;
+}
+.tee-tag-chip-remove:hover { opacity: 1; }
+.tee-tag-empty { font-size: 11px; color: var(--muted); }
+.tee-tag-input-wrap { position: relative; flex: 1; min-width: 0; }
+.tee-tag-input { width: 100%; }
+/* fix4: on mobile (see the general .tee-compact-field rule inside the
+   767px media query above), .tee-compact-field switches to
+   flex-direction:column and align-items:flex-start. flex:1 on
+   .tee-tag-input-wrap (just above) only grows along the flex container's
+   MAIN axis, which is now vertical, so it stopped affecting width; and
+   align-items:flex-start explicitly opts the wrap out of cross-axis
+   (horizontal) stretch, so it fell back to shrink-to-fit content width.
+   The existing mobile `.tee-compact-field .form-input, .form-select {
+   width:100% }` rule doesn't reach it either — .tee-tag-input-wrap is a
+   plain div, not a .form-input/.form-select, so it's one level removed
+   from that selector. An explicit mobile width fixes it directly;
+   .tee-tag-input stays width:100% of this wrap (declared above,
+   unchanged), and .tee-tag-suggestions still anchors left:0;right:0
+   against the same wrap, so the dropdown widens to match automatically —
+   same mechanism already used on desktop. */
+@media (max-width: 767px) {
+  .tee-tag-input-wrap { width: 100%; }
+}
+.tee-tag-suggestions {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  flex-wrap: wrap; gap: 6px; padding: 8px; z-index: 20;
+  background: var(--glass2); backdrop-filter: var(--blur); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+.tee-tag-suggestions.tee-tag-suggestions-open { display: flex; }
+.tee-tag-suggestion {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  color: var(--text2); background: var(--glass); border: 1px solid var(--border2);
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.tee-tag-suggestion:hover { background: var(--bg2); color: var(--text); }
+.tee-tag-suggestion-create { font-style: italic; color: var(--accent2); }
+
 
 .quick-add-person-btn {
   font-size: 11px; font-weight: 600; font-family: var(--font);
@@ -1934,6 +2248,172 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
   transition: opacity 0.15s;
 }
 .quick-add-person-btn:hover { opacity: 0.7; text-decoration: underline; }
+
+/* ── People Picker (P4-R009b, polished P4-R009b-fix2/fix3) ────
+   Task Lead+Contributors row and Event/Entry Participants use this.
+   Dedicated classes only — deliberately not sharing .sticky-tag-chip/
+   .sticky-tag-option (P4-D019 §J/§K: keep Tags and People visually
+   independent even though the Sticky pattern inspired this one).
+
+   fix2 layout: #tee-contributors (.people-picker) is display:contents so
+   its two direct children — the search row and the Suggested/Browse
+   All/Selected body — become independently placeable items of whatever
+   layout context they sit in (Task's .tee-people-row grid, or a plain
+   .form-group for Event/Entry). This lets the body span the full Assign
+   card width below the Lead+Contributors row while the search field stays
+   beside Lead — all while #tee-contributors remains the one DOM ancestor
+   of every .chip-option, since display:contents only changes rendering,
+   never DOM structure/query results (getChipSelections()/quick-add restore
+   are unaffected).
+
+   fix3 alignment: Lead's label/select and Contributors' label/search-row
+   are now four separate, symmetric grid items (two per row: both labels in
+   row 1, both fields in row 2) instead of Lead being one flex-column box
+   spanning rows 1–2 opposite two separately-placed Contributors items. Two
+   items sharing the exact same grid row line are guaranteed by the grid
+   algorithm to start at the same Y position — this is what makes the
+   labels align with each other and the select/search-row align with each
+   other, rather than depending on matching hand-tuned gap values between a
+   flex column (Lead) and grid row-gap (Contributors), which is what caused
+   the fix2 misalignment. */
+.tee-people-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.55fr) minmax(220px, 1.45fr);
+  grid-template-rows: auto auto;
+  column-gap: 14px; row-gap: 6px;
+  align-items: center;
+}
+.tee-people-lead-label   { grid-column: 1; grid-row: 1; margin-bottom: 0; }
+.tee-people-contrib-label { grid-column: 2; grid-row: 1; margin-bottom: 0; }
+.tee-people-lead-select  { grid-column: 1; grid-row: 2; }
+/* fix6: the mobile override for .people-picker-search-row/.people-picker-body
+   used to live here, but .people-picker-search-row's and .people-picker-
+   body's own (unconditional, no-media-query) grid-column/grid-row rules are
+   declared further below in this stylesheet — same selector, same
+   specificity, later in source order, so on mobile THEY were winning the
+   cascade over this block's attempted reset, keeping both pinned to their
+   desktop column/row (col2/row2 and col1/-1/row3) instead of falling into
+   the single-column mobile flow. .tee-people-lead-label/-contrib-label/
+   -lead-select's own base rules are all declared ABOVE this point, so their
+   mobile overrides were never affected — only these two were. Moved the
+   whole mobile block below .people-picker-body's rule (fix6 owner comment)
+   so every property it resets is guaranteed to come last for all five
+   elements, not just three of them. See the relocated block for the
+   unchanged rule content. */
+
+/* P4-R009c-fix1: replaces the fix2-fix6 side-by-side label-column layout
+   entirely with a simpler full-width stacked row order, per owner review:
+   header (Assignees/Participants label + ☆/★ hint), assignee/participant
+   pills, a labeled search row, then a Suggested header (+ Browse All) and
+   its pills. Task no longer has a Lead column at all (see
+   _buildTEEAssignFields), so there is no 2-column grid left to flatten
+   into — .people-picker keeps display:contents from earlier checkpoints
+   (harmless no-op for plain block-stacking content; not removed, per "no
+   opportunistic cleanup") but nothing under it needs grid-column/grid-row
+   placement anymore, and this new structure needs no mobile-specific
+   reordering rules at all (block-stacked content already reads correctly
+   top-to-bottom at any width), eliminating the whole class of ordering bug
+   the fix3/fix6 grid+order approach kept needing correction passes for. */
+.people-picker { display: contents; }
+.people-picker-header-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 4px;
+}
+.people-picker-section-label {
+  font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.people-picker-lead-hint { font-size: 10px; font-weight: 500; color: var(--muted); }
+
+.people-picker-search-row { display: flex; align-items: center; gap: 8px; min-width: 0; margin: 10px 0 8px; }
+.people-picker-search-label {
+  flex-shrink: 0; white-space: nowrap;
+  font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.people-picker-search { flex: 1; min-width: 0; }
+/* + Add restyled as a real small button (fix2 owner comment 6) — no longer
+   the bare .quick-add-person-btn text-link style. Still calls the same,
+   unchanged quickAddPersonFromModal(). */
+.people-picker-add-btn {
+  flex-shrink: 0; white-space: nowrap;
+  font-size: 12px; font-weight: 600; font-family: var(--font);
+  color: var(--accent2); background: var(--glass2);
+  border: 1px solid var(--border2); border-radius: 8px;
+  padding: 9px 14px; cursor: pointer; transition: all 0.15s;
+}
+.people-picker-add-btn:hover { background: var(--glassh); border-color: var(--bordera); color: var(--text); }
+
+.people-picker-suggested, .people-picker-selected {
+  display: flex; flex-wrap: wrap; gap: 6px; min-height: 34px;
+}
+/* Suggested keeps top-alignment — it needs it for its cap/overflow-hidden
+   clipping to clip only the BOTTOM of overflow content, not both edges.
+   Selected has no cap, so centering its (usually short — including the
+   "No one assigned" empty state) content is safe. */
+.people-picker-suggested { align-content: flex-start; margin-top: 4px; }
+.people-picker-selected { align-content: center; }
+/* .people-chip-label has no CSS rule of its own, so it inherits body's
+   line-height:1.6 at 12px font-size (~19px line box) — real one-row chip
+   height is padding 5+5 + border 1+1 + that ~19px label line ≈ 31–32px.
+   34px is the smallest safe value that clears the real content height
+   while staying below where a second row starts (~37px given the 6px
+   gap), so it still shows exactly one row. Still height-capped, not
+   position-capped, and applies identically to Task assignees and
+   Event/Entry participants since both render through this same CSS.
+   Hidden chips stay fully present in the DOM (display:none only) —
+   .search-hidden hides non-matches by content, this cap hides overflow by
+   available space; neither ever removes a person from the DOM. */
+.people-picker-suggested { max-height: 34px; overflow: hidden; }
+.people-picker-suggested.expanded { max-height: none; overflow: visible; }
+.people-picker-suggested .chip-option.search-hidden { display: none; }
+.people-picker-empty { font-size: 11px; color: var(--muted); padding: 4px 2px; }
+
+.people-picker-browse-all {
+  font-size: 11px; font-weight: 600; font-family: var(--font);
+  color: var(--accent2); background: transparent; border: none; cursor: pointer;
+  padding: 2px 0;
+}
+.people-picker-browse-all:hover { opacity: 0.7; text-decoration: underline; }
+
+/* Selected-chip remove "×" — visual upgrade over the old silent re-click-to-
+   deselect (P4-D018 §H item 7). P4-R009c-fix1: × now has its own dedicated
+   click handler (_peoplePickerRemoveChip) instead of relying on bubbling —
+   see that function's comment for why. */
+.people-chip-remove { margin-left: 2px; font-size: 13px; font-weight: 700; line-height: 1; opacity: 0.7; cursor: pointer; }
+.chip-option.people-chip:hover .people-chip-remove { opacity: 1; }
+
+/* P4-R009c-fix1: Task-only Make Lead star (☆ = make lead, ★ = current
+   lead), enlarged and given a clear circular hit-area per owner review
+   (item F) — was 12px/no hit-area in P4-R009c. Dedicated classes, not
+   shared with any other star/pill iconography in the app. Only ever
+   rendered on SELECTED Task chips (buildPeoplePicker's leadMode);
+   Event/Entry chips never get this markup at all. Both ☆ and ★ are now
+   clickable (★ clears Lead via _peoplePickerClearLead — P4-R009c-fix1 item
+   E fix, replacing the old fall-through-to-remove behavior). ★ renders as
+   a filled accent-colored circle (i.e. "active/filled") for clear
+   at-a-glance distinction from the plain outlined ☆ ("available"). */
+.people-chip-lead-star {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  font-size: 15px; line-height: 1; flex-shrink: 0; margin-right: 2px;
+  color: var(--muted); cursor: pointer; transition: all 0.15s;
+}
+.people-chip-lead-star:not(.is-lead):hover { color: var(--accent2); background: var(--glassh); }
+.people-chip-lead-star.is-lead { color: #fff; background: var(--accent2); }
+.people-chip-lead-star.is-lead:hover { opacity: 0.85; }
+
+/* Lead pill visual distinction (item F) — a stronger accent border/tint,
+   still within the app's existing calm chip visual language (same shape/
+   size/padding as every other chip, just a different border/background
+   tint), token-based for light/dark compatibility. */
+.chip-option.people-chip.is-lead {
+  border-color: var(--accent2);
+  background: rgba(40,92,112,0.16);
+}
+[data-theme="light"] .chip-option.people-chip.is-lead {
+  background: rgba(40,92,112,0.10);
+}
 
 /* Add Team Member card — dashed bordered card in person grid */
 .add-person-btn {
@@ -1973,6 +2453,15 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .form-select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238B9DC3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px; cursor: pointer; }
 .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--bordera); background: var(--glass2); }
 .form-input::placeholder, .form-textarea::placeholder { color: var(--muted); }
+/* P4-R008b-fix2: subtle Title emphasis — id="tee-title" reads as the form's
+   primary field without overpowering it or looking like an alert/warning
+   state. Reuses existing theme-safe tokens (--glass/--glass2/--bordera/
+   --accent2, all defined for both dark and light themes) rather than new
+   color literals, so it stays correct in both modes automatically.
+   Placeholder ("Title…"), id, and validation (saveTEEModal's title-required
+   check) are all unchanged — visual only. */
+#tee-title { background: var(--glass); border-color: var(--bordera); font-size: 14px; font-weight: 600; }
+#tee-title:focus { border-color: var(--accent2); background: var(--glass2); }
 /* Native select option styling */
 .form-select option { background: var(--bg2); color: var(--text); }
 /* Kanban filter bar inputs */
@@ -1981,6 +2470,7 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .kanban-filter-bar select option { background: var(--bg2); color: var(--text); }
 .form-textarea { resize: vertical; min-height: 72px; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 22px; }
+.tee-modal-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 22px; flex-shrink: 0; }
 
 /* TOAST */
 .toast-wrap { position: fixed; bottom: 88px; right: 24px; z-index: 3000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
@@ -3400,8 +3890,14 @@ async function saveTEE(item) {
     'Status':       item.status || '',
     'Priority':     item.priority    || '',
     'Category':     item.category    || '',
-    'Project':      (isTask || isEntry) ? item.project : '',
-    'Department':   isTask           ? item.dept      : '',
+    // P4-R011a: Context standardization (discovery basis P4-D021/P4-D021a) —
+    // Project and Department now write unconditionally for all types
+    // instead of being gated to isTask/isEntry — both columns already
+    // existed and were already read unconditionally by _teeRowToItem for
+    // every type; only the write-side condition changes here. No schema/
+    // Apps Script/column change.
+    'Project':      item.project      || '',
+    'Department':   item.dept         || '',
     'Assignees':    item.assignees    || '',
     'Progress %':   isTask           ? item.progress  : '',
     'Tags':         Array.isArray(item.tags) ? item.tags.join(', ') : (item.tags||''),
@@ -3495,8 +3991,10 @@ async function saveArchiveItem(item, archivedBy = 'auto') {
     'Status':       item.status || '',
     'Priority':     item.priority    || '',
     'Category':     item.category    || '',
-    'Project':      (isTask || isEntry) ? item.project : '',
-    'Department':   isTask           ? item.dept      : '',
+    // P4-R011a: mirrors the same Project/Department write-condition change
+    // made in saveTEE — see that function's comment for rationale.
+    'Project':      item.project      || '',
+    'Department':   item.dept         || '',
     'Assignees':    item.assignees    || '',
     'Progress %':   isTask           ? item.progress  : '',
     'Tags':         Array.isArray(item.tags) ? item.tags.join(', ') : (item.tags||''),
@@ -3826,7 +4324,7 @@ async function restoreFromArchive(id) {
     await deleteArchiveItem(id);
     STATE.items.push(found);
     STATE.archiveCache[foundKey] = STATE.archiveCache[foundKey].filter(i => i.id !== id);
-    closeModal();
+    clearNav();
     renderAll();
     toast('✅ Restored to active', 'success');
   } catch(e) {
@@ -4558,6 +5056,272 @@ function changeItemPriority(itemId, newPriority) {
   toast(`Priority set to ${newPriority}`, 'success');
 }
 
+// ── TEE ADD/EDIT STATUS DROPDOWN (P4-R006) ──────────────────
+// Add/Edit-only sibling of openStatusDropdown()/changeItemStatus() above. Unlike
+// that pair, this does NOT touch STATE.items and does NOT call saveTEE() — it only
+// updates the open (unsaved) form's #tee-status value-holder and the visible closed
+// trigger. The change is persisted only when the user clicks Save, which reads
+// document.getElementById('tee-status')?.value exactly as before (saveTEEModal
+// unchanged). Named/top-level (not per-call closures) so the outside-click/Escape
+// listeners can be added and removed by reference without leaking duplicates.
+function openTEEStatusDropdown(type, anchorEl, event) {
+  event.stopPropagation();
+  _closeTEEStatusDropdown();
+  // P4-R007-fix1: mutually close the Add/Edit Priority dropdown so at most one
+  // Add/Edit dropdown popover is ever open at a time. Guarded because this file
+  // (Status) is defined before Priority's helpers below it, and to stay safe if
+  // either helper set is ever removed independently.
+  if (typeof _closeTEEPriorityDropdown === 'function') _closeTEEPriorityDropdown();
+  // P4-R008b: also close the new Add/Edit Type dropdown, same guarded pattern.
+  if (typeof _closeTEETypeDropdown === 'function') _closeTEETypeDropdown();
+  const rect = anchorEl.getBoundingClientRect();
+  const dropdown = document.createElement('div');
+  dropdown.id = 'tee-status-dropdown';
+  dropdown.className = 'status-dropdown';
+  const isTaskType = type === 'task';
+  const optCols = isTaskType
+    ? KANBAN_COLS
+    : [ { id:'Open', label:'Open' }, { id:'Done', label:'Done' } ];
+  // Defensive normalize: the hidden value should already be valid for `type` (via
+  // _buildTEEIdentityFields), but this guards against opening the dropdown a beat
+  // before a type-switch re-render has settled.
+  const currentVal = _normalizeTEEStatusForType(type, document.getElementById('tee-status')?.value || (isTaskType ? 'To Do' : 'Open'));
+  dropdown.innerHTML = optCols.map(col => {
+    const dotColor  = getStatusColor(col.id);
+    const isCurrent = currentVal === col.id;
+    return `<button type="button" class="status-dropdown-item${isCurrent?' current':''}"
+      onclick="selectTEEStatusOption('${col.id}')">
+      <span class="status-dot" style="background:${dotColor}"></span>
+      ${col.label}
+    </button>`;
+  }).join('');
+  document.body.appendChild(dropdown);
+  const dRect = dropdown.getBoundingClientRect();
+  let top  = rect.bottom + 6;
+  let left = rect.left;
+  if (left + dRect.width > window.innerWidth - 8)  left = window.innerWidth - dRect.width - 8;
+  if (top  + dRect.height > window.innerHeight - 8) top  = rect.top - dRect.height - 6;
+  dropdown.style.top  = `${top}px`;
+  dropdown.style.left = `${left}px`;
+  setTimeout(() => {
+    document.addEventListener('click', _teeStatusDropdownOutsideClick);
+    document.addEventListener('keydown', _teeStatusDropdownEscape, true);
+  }, 0);
+}
+function _closeTEEStatusDropdown() {
+  document.getElementById('tee-status-dropdown')?.remove();
+  document.removeEventListener('click', _teeStatusDropdownOutsideClick);
+  document.removeEventListener('keydown', _teeStatusDropdownEscape, true);
+}
+function _teeStatusDropdownOutsideClick() { _closeTEEStatusDropdown(); }
+function _teeStatusDropdownEscape(e) {
+  // Capture-phase + stopPropagation so this fires and closes the dropdown before
+  // the modal's own bubble-phase Escape handler (document._modalEscHandler) runs —
+  // the modal's Escape-closes-modal behavior is untouched when no dropdown is open.
+  if (e.key === 'Escape') { e.stopPropagation(); _closeTEEStatusDropdown(); }
+}
+// selectTEEStatusOption: updates the local #tee-status value + visible trigger only.
+// No STATE mutation, no saveTEE(), no renderAll(), no clearNav()/popNav() — the
+// bare identifier (never a composite "state|timestamp" string) is all that's
+// written, matching exactly what saveTEEModal's terminal-timestamp branches expect.
+function selectTEEStatusOption(value) {
+  const holder = document.getElementById('tee-status');
+  if (holder) holder.value = value;
+  _syncTEEStatusTrigger(value);
+  _closeTEEStatusDropdown();
+}
+// _syncTEEStatusTrigger: updates only the visible closed-state trigger (dot color +
+// label) to match a given bare status value. Split out so the quick-add-person
+// carry-over restore below (which sets #tee-status.value directly, bypassing
+// selectTEEStatusOption) can keep the visible trigger in sync too — otherwise the
+// hidden value-holder and the visible control would silently disagree after a
+// quick-add-person round trip, even though saveTEEModal would still read the
+// correct (hidden) value.
+function _syncTEEStatusTrigger(value) {
+  const dot   = document.getElementById('tee-status-trigger-dot');
+  const label = document.getElementById('tee-status-trigger-label');
+  if (dot)   dot.style.background = getStatusColor(value);
+  if (label) label.textContent    = value;
+}
+
+// ── TEE Add/Edit Status validity/normalization (P4-R006-fix1) ──────────
+// A status value that is valid for one TEE type is not necessarily valid for
+// another (e.g. Entry's 'Open' is not a Kanban column; Task's 'Completed' is not
+// Open/Done). Without normalizing, a status value can cross a type switch (or a
+// quick-add-person round trip) unchanged and get saved as an invalid value for the
+// new type. These two helpers are the single source of truth for "what statuses
+// does this type support" and "what should an out-of-range value fall back to" —
+// used by _buildTEEIdentityFields (render/type-switch path), openTEEStatusDropdown
+// (defensive current-value fallback), and the quick-add-person restore paths below.
+function _validTEEStatusesForType(type) {
+  return type === 'task' ? KANBAN_COLS.map(c => c.id) : ['Open', 'Done'];
+}
+function _normalizeTEEStatusForType(type, status) {
+  const valid = _validTEEStatusesForType(type);
+  if (valid.includes(status)) return status;
+  return type === 'task' ? 'To Do' : 'Open';
+}
+
+// ── TEE ADD/EDIT PRIORITY DROPDOWN (P4-R007) ──────────────────
+// Add/Edit-only sibling of openPriorityDropdown()/changeItemPriority() above.
+// Unlike that pair, this does NOT touch STATE.items and does NOT call saveTEE() —
+// it only updates the open (unsaved) form's #tee-priority value-holder and the
+// visible closed trigger. The change is persisted only when the user clicks Save,
+// which reads document.getElementById('tee-priority')?.value exactly as before
+// (saveTEEModal unchanged). Priority has a fixed 4-option set with no per-type
+// variation (unlike Status), so there is no normalization helper needed here.
+function openTEEPriorityDropdown(anchorEl, event) {
+  event.stopPropagation();
+  _closeTEEPriorityDropdown();
+  // P4-R007-fix1: mutually close the Add/Edit Status dropdown so at most one
+  // Add/Edit dropdown popover is ever open at a time. Guarded, mirroring the
+  // symmetric guard added to openTEEStatusDropdown above.
+  if (typeof _closeTEEStatusDropdown === 'function') _closeTEEStatusDropdown();
+  // P4-R008b: also close the new Add/Edit Type dropdown, same guarded pattern.
+  if (typeof _closeTEETypeDropdown === 'function') _closeTEETypeDropdown();
+  const rect = anchorEl.getBoundingClientRect();
+  const dropdown = document.createElement('div');
+  dropdown.id = 'tee-priority-dropdown';
+  dropdown.className = 'status-dropdown';
+  const priorities = ['Critical', 'High', 'Medium', 'Low'];
+  const currentVal = document.getElementById('tee-priority')?.value || 'Medium';
+  dropdown.innerHTML = priorities.map(p => {
+    const pr = getPri(p);
+    const isCurrent = currentVal === p;
+    return `<button type="button" class="status-dropdown-item${isCurrent?' current':''}"
+      onclick="selectTEEPriorityOption('${p}')">
+      <span class="status-dot" style="background:${pr.bar}"></span>
+      ${p}
+    </button>`;
+  }).join('');
+  document.body.appendChild(dropdown);
+  const dRect = dropdown.getBoundingClientRect();
+  let top  = rect.bottom + 6;
+  let left = rect.left;
+  if (left + dRect.width > window.innerWidth - 8)  left = window.innerWidth - dRect.width - 8;
+  if (top  + dRect.height > window.innerHeight - 8) top  = rect.top - dRect.height - 6;
+  dropdown.style.top  = `${top}px`;
+  dropdown.style.left = `${left}px`;
+  setTimeout(() => {
+    document.addEventListener('click', _teePriorityDropdownOutsideClick);
+    document.addEventListener('keydown', _teePriorityDropdownEscape, true);
+  }, 0);
+}
+function _closeTEEPriorityDropdown() {
+  document.getElementById('tee-priority-dropdown')?.remove();
+  document.removeEventListener('click', _teePriorityDropdownOutsideClick);
+  document.removeEventListener('keydown', _teePriorityDropdownEscape, true);
+}
+function _teePriorityDropdownOutsideClick() { _closeTEEPriorityDropdown(); }
+function _teePriorityDropdownEscape(e) {
+  // Capture-phase + stopPropagation, mirroring _teeStatusDropdownEscape above, so
+  // this fires and closes the dropdown before the modal's own bubble-phase Escape
+  // handler runs — the modal's Escape-closes-modal behavior is untouched when no
+  // Priority dropdown is open.
+  if (e.key === 'Escape') { e.stopPropagation(); _closeTEEPriorityDropdown(); }
+}
+// selectTEEPriorityOption: updates the local #tee-priority value + visible trigger
+// only. No STATE mutation, no saveTEE(), no renderAll(), no clearNav()/popNav() —
+// the bare identifier (Critical/High/Medium/Low) is all that's written.
+function selectTEEPriorityOption(value) {
+  const holder = document.getElementById('tee-priority');
+  if (holder) holder.value = value;
+  _syncTEEPriorityTrigger(value);
+  _closeTEEPriorityDropdown();
+}
+// _syncTEEPriorityTrigger: updates only the visible closed-state trigger (dot color
+// + label) to match a given priority value. Split out so the quick-add-person
+// carry-over restore below (which sets #tee-priority.value directly, bypassing
+// selectTEEPriorityOption) can keep the visible trigger in sync too — otherwise the
+// hidden value-holder and the visible control would silently disagree after a
+// quick-add-person round trip, even though saveTEEModal would still read the
+// correct (hidden) value.
+function _syncTEEPriorityTrigger(value) {
+  const dot   = document.getElementById('tee-priority-trigger-dot');
+  const label = document.getElementById('tee-priority-trigger-label');
+  if (dot)   dot.style.background = getPri(value).bar;
+  if (label) label.textContent    = value;
+}
+
+// ── TEE ADD/EDIT TYPE DROPDOWN (P4-R008b) ──────────────────────
+// Add/Edit-only Type control, converted from the former large .tee-type-tabs
+// pill-tab row into a compact pill dropdown trigger matching the unified
+// identity-bar visual language (Type / Priority / Status, per P4-D017/P4-R008b).
+// Unlike Status/Priority's Add/Edit dropdowns, selecting a Type option is NOT a
+// pure draft-only value — Type immediately drives switchTEEType(value), which
+// swaps the visible field zones the user needs to fill in. switchTEEType itself
+// still performs no STATE mutation and no saveTEE()/renderAll()/clearNav()/
+// popNav() call — the item is only persisted when Save is clicked, exactly as
+// before this checkpoint. The three type colors mirror _buildTypeBadge's
+// existing Today-card color map (task/event/entry) for visual consistency.
+function openTEETypeDropdown(anchorEl, event) {
+  event.stopPropagation();
+  _closeTEETypeDropdown();
+  // Mutual-close with Status/Priority's Add/Edit dropdowns, mirroring the
+  // guarded pattern already used between Status and Priority (P4-R007-fix1).
+  if (typeof _closeTEEStatusDropdown === 'function') _closeTEEStatusDropdown();
+  if (typeof _closeTEEPriorityDropdown === 'function') _closeTEEPriorityDropdown();
+  const rect = anchorEl.getBoundingClientRect();
+  const dropdown = document.createElement('div');
+  dropdown.id = 'tee-type-dropdown';
+  dropdown.className = 'status-dropdown';
+  const types = [
+    { id:'task',  label:'Task',  color:'var(--accent2)' },
+    { id:'event', label:'Event', color:'var(--cyan)' },
+    { id:'entry', label:'Entry', color:'var(--yellow)' },
+  ];
+  const currentVal = document.getElementById('tee-current-type')?.value || 'task';
+  dropdown.innerHTML = types.map(t => {
+    const isCurrent = currentVal === t.id;
+    return `<button type="button" class="status-dropdown-item${isCurrent?' current':''}"
+      onclick="selectTEETypeOption('${t.id}')">
+      <span class="status-dot" style="background:${t.color}"></span>
+      ${t.label}
+    </button>`;
+  }).join('');
+  document.body.appendChild(dropdown);
+  const dRect = dropdown.getBoundingClientRect();
+  let top  = rect.bottom + 6;
+  let left = rect.left;
+  if (left + dRect.width > window.innerWidth - 8)  left = window.innerWidth - dRect.width - 8;
+  if (top  + dRect.height > window.innerHeight - 8) top  = rect.top - dRect.height - 6;
+  dropdown.style.top  = `${top}px`;
+  dropdown.style.left = `${left}px`;
+  setTimeout(() => {
+    document.addEventListener('click', _teeTypeDropdownOutsideClick);
+    document.addEventListener('keydown', _teeTypeDropdownEscape, true);
+  }, 0);
+}
+function _closeTEETypeDropdown() {
+  document.getElementById('tee-type-dropdown')?.remove();
+  document.removeEventListener('click', _teeTypeDropdownOutsideClick);
+  document.removeEventListener('keydown', _teeTypeDropdownEscape, true);
+}
+function _teeTypeDropdownOutsideClick() { _closeTEETypeDropdown(); }
+function _teeTypeDropdownEscape(e) {
+  if (e.key === 'Escape') { e.stopPropagation(); _closeTEETypeDropdown(); }
+}
+// selectTEETypeOption: closes the dropdown, then delegates entirely to the
+// existing switchTEEType(value) — Type must immediately reconfigure the visible
+// field zones (unlike Status/Priority, which stay purely local until Save).
+// switchTEEType is itself responsible for updating #tee-current-type and the
+// Type trigger's display via _syncTEETypeTrigger (see switchTEEType).
+function selectTEETypeOption(value) {
+  _closeTEETypeDropdown();
+  switchTEEType(value);
+}
+// _syncTEETypeTrigger: updates only the visible closed-state Type trigger
+// (icon + label) to match a given type value. Called by switchTEEType and by
+// the initial render, mirroring _syncTEEStatusTrigger/_syncTEEPriorityTrigger.
+function _syncTEETypeTrigger(value) {
+  const icons  = { task:'ti-clipboard-list', event:'ti-calendar-event', entry:'ti-notes' };
+  const labels = { task:'Task', event:'Event', entry:'Entry' };
+  const icon  = document.getElementById('tee-type-trigger-icon');
+  const label = document.getElementById('tee-type-trigger-label');
+  if (icon)  icon.className = `ti ${icons[value] || 'ti-clipboard-list'}`;
+  if (label) label.textContent = labels[value] || value;
+}
+
 // ── CHIP SELECT HELPERS ──────────────────────────────────────
 // Builds tap-friendly chip-toggle multi-select (mobile-friendly, no <select multiple>)
 // Shows a search box when there are more than 6 people
@@ -4584,6 +5348,369 @@ function buildChipSelect(id, peopleNames, selectedNames) {
 function getChipSelections(id) {
   return Array.from(document.querySelectorAll(`#${id} .chip-option.selected`))
     .map(el => el.dataset.val).filter(Boolean);
+}
+
+// ── PEOPLE PICKER (P4-R009b) ─────────────────────────────────
+// Suggested/Selected people-picker foundation for TEE Assign (Task
+// Contributors, Event/Entry Participants). Built alongside buildChipSelect/
+// getChipSelections (left untouched — no other caller depends on them,
+// confirmed by P4-D019 §K) rather than replacing them.
+//
+// Critical DOM contract (P4-D019 §I/§L, unchanged by this checkpoint):
+// every STATE.people name must always have exactly one .chip-option
+// [data-val] element somewhere inside #tee-contributors, and .selected is
+// the sole source of truth — never a JS array. getChipSelections() reads
+// it directly, and P4-R009a's quickAddPersonFromModal()/_saveQuickPerson()/
+// _restoreTEEModal() (all unchanged) toggle .selected on existing chips the
+// same way they always did. Hidden/collapsed Suggested chips are hidden via
+// CSS classes only (.search-hidden, and the nth-child cap disabled by
+// .expanded/.searching) — never removed from the DOM.
+// P4-R009c: optional 4th param (leadInfo: { showLeadStar, isLead }) adds a
+// Task-only ★/☆ Make Lead indicator (owner decisions 5/6/7). Stars only
+// ever render on SELECTED chips — Suggested/unselected people are not yet
+// "involved" in the Task, so a star has no meaning for them there (owner
+// decision 13). showLeadStar is only ever true for Task's picker
+// (buildPeoplePicker's leadMode); Event/Entry never pass leadInfo at all,
+// so they never render a star (owner decision 12).
+//
+// P4-R009c-fix1: both ☆ and ★ now stop propagation and call their own
+// dedicated handler (_peoplePickerMakeLead / _peoplePickerClearLead) — in
+// P4-R009c, ★ had no handler and fell through to the chip's own click-to-
+// remove behavior, which incorrectly removed the person entirely instead
+// of just clearing Lead status (owner-reported bug, item E). The × remove
+// button also now has its own dedicated handler (_peoplePickerRemoveChip)
+// instead of relying on bubbling, since a selected chip's body click is no
+// longer a remove action at all (see _peoplePickerToggleChip below) —
+// removal is exclusive to × now, for both Task and Event/Entry alike.
+function _peopleChipHTML(name, selected, searchHidden, leadInfo) {
+  const li = leadInfo || {};
+  const showStar = !!li.showLeadStar && selected;
+  const isLead   = !!li.isLead;
+  const person = STATE.people.find(p => p.name === name);
+  const color  = person?.color || avColor(name);
+  const star = !showStar ? '' : isLead
+    ? `<span class="people-chip-lead-star is-lead" title="Clear Lead" aria-label="Clear ${name} as Lead" onclick="event.stopPropagation();_peoplePickerClearLead(this)">★</span>`
+    : `<span class="people-chip-lead-star" title="Make ${name} Lead" aria-label="Make ${name} Lead" onclick="event.stopPropagation();_peoplePickerMakeLead(this)">☆</span>`;
+  return `<span class="chip-option people-chip${selected ? ' selected' : ''}${searchHidden ? ' search-hidden' : ''}${isLead ? ' is-lead' : ''}" data-val="${name}"
+    onclick="_peoplePickerToggleChip(this)" style="touch-action:manipulation">
+    ${star}
+    <span class="chip-av" style="background:${color}">${initials(name)}</span>
+    <span class="people-chip-label">${name}</span>
+    ${selected ? `<span class="people-chip-remove" title="Remove ${name}" aria-label="Remove ${name}" onclick="event.stopPropagation();_peoplePickerRemoveChip(this)">&times;</span>` : ''}
+  </span>`;
+}
+
+// P4-R009c-fix1: chip-body click now only ADDS a not-yet-selected
+// (Suggested) person — clicking an already-SELECTED chip's body/avatar/
+// label is now a no-op (owner decision, item E: removal must be exclusive
+// to the × button, so clicking a selected pill can't accidentally remove
+// someone). Applies uniformly to Task and Event/Entry alike, since neither
+// ever had a reason to keep body-click-removes once × has its own handler.
+// The class-mutation observer regroups the visual rows afterward, same as
+// always, when a Suggested chip is actually added.
+function _peoplePickerToggleChip(el) {
+  if (el.classList.contains('selected')) return;
+  el.classList.add('selected');
+}
+
+// P4-R009c-fix1: the × button's own dedicated remove handler — in
+// P4-R009c, × had no onclick of its own and relied on bubbling to the
+// chip's own click-to-remove handler; now that a selected chip's body
+// click is a no-op (see _peoplePickerToggleChip above), × must do the
+// removal itself. If the removed person was the current Task Lead, clear
+// #tee-lead too (same rule P4-R009c already established for removal —
+// just relocated here since removal itself moved here). For Event/Entry,
+// #tee-lead doesn't exist in the DOM, so this is a safe no-op there.
+function _peoplePickerRemoveChip(xEl) {
+  const chip = xEl.closest('.chip-option');
+  if (!chip) return;
+  chip.classList.remove('selected');
+  const leadEl = document.getElementById('tee-lead');
+  if (leadEl && leadEl.value === chip.dataset.val) leadEl.value = '';
+}
+
+// Promotes an already-selected Task person to Lead (owner decision 8).
+// Only ever invoked from a ☆ button, which only ever renders on selected
+// Task chips — never wired up for Event/Entry. Does not touch any chip's
+// .selected class — the old Lead stays selected (owner decision 9), only
+// #tee-lead's value changes; regrouping afterward re-renders which chip
+// shows ★ vs ☆ (and clears any other chip's stale ★, since only one chip
+// can ever match the new #tee-lead value), and re-sorts Lead to the front
+// of Assignees (owner decision, item G).
+function _peoplePickerMakeLead(starEl) {
+  const chip = starEl.closest('.chip-option');
+  const leadEl = document.getElementById('tee-lead');
+  if (!chip || !leadEl) return;
+  leadEl.value = chip.dataset.val;
+  const root = chip.closest('.people-picker');
+  if (root && root.id) _peoplePickerRegroup(root.id);
+}
+
+// P4-R009c-fix1: clicking ★ (the current Lead) clears Lead status only —
+// the person stays selected/assigned (owner decision, item E). This is the
+// fix for the bug P4-R009c's own comment already flagged: ★ previously had
+// no handler and fell through to the chip's own click-to-remove behavior,
+// incorrectly removing the person entirely instead of just clearing Lead.
+function _peoplePickerClearLead(starEl) {
+  const chip = starEl.closest('.chip-option');
+  const leadEl = document.getElementById('tee-lead');
+  if (!chip || !leadEl) return;
+  if (leadEl.value === chip.dataset.val) leadEl.value = '';
+  const root = chip.closest('.people-picker');
+  if (root && root.id) _peoplePickerRegroup(root.id);
+}
+
+// Rebuilds the Suggested/Selected sub-rows from the live .selected state of
+// every .chip-option currently under #id — a throwaway read each time, never
+// a persisted array. Safe to call as often as needed (idempotent).
+//
+// P4-R009b-fix1: this function disconnects the shared observer (see
+// _peoplePickerEnsureObserver below) before making its own DOM/class changes,
+// and reconnects once it's done. Root cause of the original search-typing
+// hang: per the DOMTokenList spec, classList.remove(token) unconditionally
+// runs its "update steps" (i.e. re-serializes and re-sets the class
+// attribute) even when the token was already absent — unlike
+// toggle(token, force), which short-circuits when the requested state
+// already holds. Regroup used to call suggestedEl.classList.remove('expanded')
+// on every keystroke whenever query was truthy, regardless of whether
+// 'expanded' was present, which fired a genuine 'class' mutation every time
+// and fed an infinite loop back through the observer. fix1's disconnect/
+// reconnect wrapper (kept here unchanged in fix2, per hard restriction) makes
+// this function's own mutations invisible to the observer regardless of
+// which line would otherwise cause them. fix2 also removes the
+// remove('expanded') call entirely (search no longer force-collapses Browse
+// All — see below), so the original trigger line is gone too, not just
+// guarded.
+//
+// P4-R009b-fix2: Browse All's visibility is now decided by measuring actual
+// overflow (scrollHeight vs. clientHeight) against the CSS height cap on
+// .people-picker-suggested, via requestAnimationFrame after the DOM update —
+// this replaces the old position-based (nth-child) cap and its count
+// heuristic, so it stays correct at any width/column layout without
+// per-breakpoint rules. Search no longer hides Browse All or force-collapses
+// .expanded — per the owner's fix2 comment 5, results stay height-capped
+// (not a growing wall) with Browse All still available to reveal more
+// matches while searching.
+//
+// P4-R009b-fix4: Browse All's visibility toggle switched from
+// style.display to style.visibility (see below) — Browse All now lives
+// inside the Suggested label column as an always-reserved second line
+// (buildPeoplePicker), and display:none would have collapsed that
+// reservation, changing the Suggested row's height and jumping the Selected
+// row underneath it every time Browse All appeared/disappeared. visibility
+// keeps the same disconnect/reconnect-safe, inline-style-only, non-class
+// mutation this function already relied on — no change to the fix1 hang fix.
+function _peoplePickerRegroup(id) {
+  const root = document.getElementById(id);
+  if (!root) return;
+  const suggestedEl = root.querySelector('.people-picker-suggested');
+  const selectedEl  = root.querySelector('.people-picker-selected');
+  if (!suggestedEl || !selectedEl) return;
+
+  if (_peoplePickerObserver) _peoplePickerObserver.disconnect();
+
+  const all = Array.from(root.querySelectorAll('.chip-option[data-val]')).map(el => ({
+    name: el.dataset.val,
+    selected: el.classList.contains('selected'),
+  }));
+
+  const searchInput = root.querySelector('.people-picker-search');
+  const query = (searchInput?.value || '').trim().toLowerCase();
+
+  const unselected     = all.filter(p => !p.selected).map(p => p.name);
+  const matchCount     = query ? unselected.filter(n => n.toLowerCase().includes(query)).length : unselected.length;
+
+  // P4-R009c: Task-only lead mode, marked on the container at build time
+  // (buildPeoplePicker). Re-read #tee-lead live on every regroup, same as
+  // everything else in this function reads live DOM state rather than a
+  // persisted value — this is what keeps ★/☆ correct after Make Lead,
+  // after clearing/removing the Lead, after quick-add restore, and after
+  // type switching, with no extra wiring needed at any of those call sites.
+  const leadMode = root.dataset.leadMode === '1';
+  const currentLead = leadMode ? (document.getElementById('tee-lead')?.value || '') : '';
+
+  // P4-R009c-fix1 item G: Lead must render first in Assignees, with
+  // everyone else keeping their existing relative order. all[] preserves
+  // live DOM order (whatever order chips currently sit in), so pull the
+  // Lead to the front of that same order rather than re-sorting anything
+  // else — this also directly determines saveTEEModal's saved order, since
+  // getChipSelections reads chips in this same DOM order.
+  const selectedNamesRaw = all.filter(p => p.selected).map(p => p.name);
+  const selectedNames = (leadMode && currentLead)
+    ? [currentLead, ...selectedNamesRaw.filter(n => n !== currentLead)]
+    : selectedNamesRaw;
+
+  // Every unselected person is always rendered — non-matches during an
+  // active search are hidden via .search-hidden, never omitted.
+  suggestedEl.innerHTML = unselected.map(n =>
+    _peopleChipHTML(n, false, !!query && !n.toLowerCase().includes(query))
+  ).join('') || `<span class="people-picker-empty">No one else to add</span>`;
+  if (unselected.length && query && matchCount === 0) {
+    suggestedEl.innerHTML += `<span class="people-picker-empty">No matches</span>`;
+  }
+
+  // P4-R009c-fix1 item D: exact empty-state wording is "No one assigned"
+  // for both Task Assignees and Event/Entry Participants (was "No one
+  // selected yet").
+  selectedEl.innerHTML = selectedNames.length
+    ? selectedNames.map(n => _peopleChipHTML(n, true, false, { showLeadStar: leadMode, isLead: leadMode && n === currentLead })).join('')
+    : `<span class="people-picker-empty">No one assigned</span>`;
+
+  suggestedEl.classList.toggle('searching', !!query);
+
+  const browseBtn = root.querySelector('.people-picker-browse-all');
+  if (browseBtn) {
+    const expanded = suggestedEl.classList.contains('expanded');
+    browseBtn.textContent = expanded ? 'Show Less' : 'Browse All';
+    // fix4 owner comment 3: toggle visibility, not display — display:none
+    // would collapse Browse All's reserved line in the label column,
+    // shrinking/growing the Suggested row and jumping Selected underneath
+    // it every time Browse All appeared or disappeared. visibility keeps
+    // the line's layout space constant either way, so Selected never moves.
+    if (expanded) {
+      browseBtn.style.visibility = unselected.length ? 'visible' : 'hidden';
+    } else {
+      // Measure real overflow against the height cap (not a count guess) —
+      // rAF lets the browser lay out the innerHTML rebuild above first.
+      // Pure read/inline-style/textContent work, no class mutation, so this
+      // cannot re-trigger the observer even while it's already reconnected.
+      requestAnimationFrame(() => {
+        if (!suggestedEl.isConnected) return;
+        const overflowing = suggestedEl.scrollHeight > suggestedEl.clientHeight + 1;
+        browseBtn.style.visibility = overflowing ? 'visible' : 'hidden';
+      });
+    }
+  }
+
+  if (_peoplePickerObserver) {
+    _peoplePickerObserver.observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
+  }
+}
+
+function _peoplePickerToggleBrowseAll(id, btn) {
+  const root = document.getElementById(id);
+  if (!root) return;
+  const suggestedEl = root.querySelector('.people-picker-suggested');
+  if (!suggestedEl) return;
+  const expanded = suggestedEl.classList.toggle('expanded');
+  btn.textContent = expanded ? 'Show Less' : 'Browse All';
+}
+
+// Lazily installs one page-lifetime observer (not per-render) that watches
+// for external .selected class changes on people-picker chips — specifically
+// P4-R009a's quick-add Save/Cancel restore loops, which toggle
+// #tee-contributors .chip-option.selected directly and are not modified by
+// this checkpoint. Regroups whichever picker changed so Suggested/Selected
+// stay visually in sync with the DOM-class source of truth, including right
+// after quick-add restores a carried selection.
+//
+// P4-R009b-fix1: the observer instance is now kept in a module-level
+// variable (_peoplePickerObserver) instead of a function-local const, so
+// _peoplePickerRegroup can disconnect/reconnect it around its own mutations
+// (see that function's comment). Still installed exactly once, lazily, for
+// the page's lifetime — type switching still creates no stale/duplicate
+// observers, since document.body + subtree:true dynamically covers whatever
+// #tee-contributors element currently exists.
+let _peoplePickerObserverInstalled = false;
+let _peoplePickerObserver = null;
+function _peoplePickerEnsureObserver() {
+  if (_peoplePickerObserverInstalled) return;
+  _peoplePickerObserverInstalled = true;
+  _peoplePickerObserver = new MutationObserver(muts => {
+    const ids = new Set();
+    muts.forEach(m => {
+      const target = m.target;
+      const picker = target && target.nodeType === 1 && target.closest ? target.closest('.people-picker') : null;
+      if (picker && picker.id) ids.add(picker.id);
+    });
+    ids.forEach(id => _peoplePickerRegroup(id));
+  });
+  _peoplePickerObserver.observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
+}
+
+// Renders the full picker: always-visible search (+ optional "+ Add" real
+// button), and a full-width body — Suggested row (height-capped via CSS,
+// never via omitting people from the DOM), Browse All, and Selected row.
+//
+// P4-R009b-fix2: split into two top-level children — .people-picker-search-
+// row and .people-picker-body — so that with .people-picker's new
+// display:contents (see CSS), the search row can stay beside Lead (Task) or
+// atop Participants (Event/Entry) while the body independently spans the
+// full Assign card width below it. Both children remain descendants of this
+// same #id element regardless of how they're laid out, so getChipSelections
+// (unchanged)/quick-add restore (unchanged) still find every .chip-option
+// under #tee-contributors exactly as before. `opts.showAdd` renders the
+// "+ Add" quick-add trigger (same unchanged quickAddPersonFromModal()) as a
+// real button, not a text link, per owner review.
+//
+// P4-R009c: `opts.leadMode` (Task only) marks the container with
+// `data-lead-mode="1"` so _peoplePickerRegroup can find it again on every
+// later re-render without needing its own opts parameter — the DOM itself
+// carries "is this a Lead-aware picker" the same way it already carries
+// .selected as the source of truth. `opts.leadName` supplies the current
+// Lead for this one initial render only (before #tee-lead exists in the
+// DOM to read live); every subsequent render (search, click, quick-add,
+// type switch) goes through _peoplePickerRegroup, which reads #tee-lead
+// live instead. `selectedNames` is now expected to include the Lead's name
+// too when leadMode is on (owner decision 4/13 — Selected is the single
+// source of truth for everyone involved, Lead included), so the Lead's
+// chip renders in Selected with a star instead of incorrectly appearing in
+// Suggested as if not yet involved.
+//
+// P4-R009c-fix1: row order rebuilt per owner review (item A/B) — header
+// (opts.assigneeLabel: "Assignees" for Task, "Participants" for Event/
+// Entry, + the ☆/★ hint when leadMode) → assignee/participant pills →
+// a labeled Search row → a Suggested header (+ Browse All) → Suggested
+// pills. Pills used to render last, after Suggested; they now render
+// first, directly under the header, per the owner's requested order.
+// Selected/assignee pills are now rendered in the CALLER's given order
+// (lead-first, when leadMode — see _buildTEEAssignFields) instead of being
+// re-derived from peopleNames/STATE.people order, so Lead renders first in
+// Assignees (owner decision, item G) from the very first paint, not only
+// after the first regroup.
+function buildPeoplePicker(id, peopleNames, selectedNames, opts) {
+  _peoplePickerEnsureObserver();
+  const o = opts || {};
+  const showAdd = !!o.showAdd;
+  const leadMode = !!o.leadMode;
+  const leadName = o.leadName || '';
+  const assigneeLabel = o.assigneeLabel || 'Assignees';
+  const selectedSet = new Set(selectedNames || []);
+
+  const orderedSelected = (selectedNames || []).filter(n => selectedSet.has(n));
+  const selectedChipsHTML = orderedSelected
+    .map(n => _peopleChipHTML(n, true, false, { showLeadStar: leadMode, isLead: leadMode && n === leadName }))
+    .join('');
+  const unselectedChipsHTML = peopleNames.filter(n => !selectedSet.has(n)).map(n => _peopleChipHTML(n, false, false)).join('');
+
+  // Browse All starts hidden in the markup below (no reliable overflow
+  // measurement is possible before layout) — this deferred call runs once
+  // the returned markup is actually in the DOM (the caller inserts it
+  // synchronously right after this function returns, well before a
+  // setTimeout(0) callback can fire) and corrects its visibility from real
+  // measured overflow, same as every later interaction does.
+  setTimeout(() => _peoplePickerRegroup(id), 0);
+
+  return `
+    <div class="people-picker" id="${id}"${leadMode ? ' data-lead-mode="1"' : ''}>
+      <div class="people-picker-header-row">
+        <span class="people-picker-section-label">${assigneeLabel}</span>
+        ${leadMode ? '<span class="people-picker-lead-hint">☆ Make Lead · ★ Lead</span>' : ''}
+      </div>
+      <div class="people-picker-selected">${selectedChipsHTML || '<span class="people-picker-empty">No one assigned</span>'}</div>
+
+      <div class="people-picker-search-row">
+        <span class="people-picker-search-label">Search:</span>
+        <input type="text" class="form-input people-picker-search" placeholder="Search people…" oninput="_peoplePickerRegroup('${id}')">
+        ${showAdd ? `<button type="button" class="people-picker-add-btn" onclick="quickAddPersonFromModal()" title="Add a new team member">+ Add</button>` : ''}
+      </div>
+
+      <div class="people-picker-header-row">
+        <span class="people-picker-section-label">Suggested</span>
+        <button type="button" class="people-picker-browse-all" onclick="_peoplePickerToggleBrowseAll('${id}', this)" style="visibility:hidden">Browse All</button>
+      </div>
+      <div class="people-picker-suggested">${unselectedChipsHTML || '<span class="people-picker-empty">No one else to add</span>'}</div>
+    </div>`;
 }
 
 function togglePinExpand(noteId, btn) {
@@ -7176,7 +8303,7 @@ function openArchiveDrawer() {
     // Fetch and re-open once loaded
     const now = new Date();
     fetchArchiveMonth(now.getFullYear(), now.getMonth())
-      .then(() => { clearNav(); openArchiveDrawer(); });
+      .then(() => { openArchiveDrawer(); });
     return;
   }
 
@@ -7196,11 +8323,11 @@ function _renderArchiveDrawer(search, priority, assignee) {
     .flatMap(([, items]) => items)
     .filter(i => i.type === 'task');
 
-  const assignees = ['All', ...new Set(allArchived.map(t=>t.assignee).filter(Boolean))];
+  const assignees = ['All', ...new Set(allArchived.flatMap(t=>splitAssigneeNames(t.assignees)).filter(Boolean))];
   let filtered = allArchived.filter(t => {
     if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.id.toLowerCase().includes(search.toLowerCase())) return false;
     if (priority !== 'All' && t.priority !== priority) return false;
-    if (assignee !== 'All' && t.assignee !== assignee) return false;
+    if (assignee !== 'All' && !splitAssigneeNames(t.assignees||'').includes(assignee)) return false;
     return true;
   });
 
@@ -7218,7 +8345,7 @@ function _renderArchiveDrawer(search, priority, assignee) {
             <div style="font-size:14px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-decoration:line-through;opacity:0.8">${t.title}</div>
             <div style="font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap">
               <span style="font-family:var(--mono)">${t.id}</span>
-              <span>${t.assignee||'Unassigned'}</span>
+              <span>${splitAssigneeNames(t.assignees).join(', ')||'Unassigned'}</span>
               ${t.archivedDate ? `<span>Archived ${t.archivedDate}</span>` : ''}
               ${t.dueDate ? `<span>Due was ${t.dueDate}</span>` : ''}
             </div>
@@ -7515,7 +8642,7 @@ function renderDirectories() {
 }
 
 function confirmAction(message, confirmLabel, onConfirm, danger=true) {
-  const fn = onConfirm.toString();
+  const btnId = 'confirm-action-btn-' + Date.now();
   openModal(`
     <div style="padding:4px 0 12px">
       <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:10px">Confirm</div>
@@ -7523,11 +8650,11 @@ function confirmAction(message, confirmLabel, onConfirm, danger=true) {
     </div>
     <div class="modal-actions">
       <button class="btn-ghost" onclick="clearNav()">Cancel</button>
-      <button style="${danger?'background:rgba(248,113,113,0.12);color:var(--red);border:1px solid rgba(248,113,113,0.35);height:36px;padding:0 16px;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;':''}"
-        onclick="clearNav();(${fn})()">
+      <button id="${btnId}" style="${danger?'background:rgba(248,113,113,0.12);color:var(--red);border:1px solid rgba(248,113,113,0.35);height:36px;padding:0 16px;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;':''}">
         ${confirmLabel}
       </button>
     </div>`);
+  document.getElementById(btnId).addEventListener('click', () => { clearNav(); onConfirm(); });
 }
 
 // ── NAVIGATION STACK ────────────────────────────────────────
@@ -7779,13 +8906,15 @@ function openTEEDetail(itemId, _u1, isArchived) {
 
   const dateField   = (item.type === 'task') ? item.dueDate   : item.date;
   const startField  = (item.type === 'task') ? item.startDate : '';
-  const colorSwatch = (item.type === 'event' && item.color)
-    ? `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${item.color};margin-right:4px;vertical-align:middle"></span>`
-    : '';
+  // P4-R011b: Event color swatch removed from TEE Detail (discovery basis
+  // P4-D021a) — no dot renders before the title for any Event, including
+  // legacy Events that already have a saved Color value. buildModalDetailHeader's
+  // colorSwatch parameter is left in place (its own default is already ''),
+  // simply no longer passed a non-empty value from here.
 
   // Push self to stack before rendering so ‹ Back from child returns here
   openModal(`
-    ${buildModalDetailHeader(item, typeIcon, typeLabel, pri, colorSwatch)}
+    ${buildModalDetailHeader(item, typeIcon, typeLabel, pri)}
 
     <div class="detail-grid">
       ${_buildDetailStatusRow(item)}
@@ -7829,6 +8958,210 @@ function openTEEDetail(itemId, _u1, isArchived) {
     </div>`);
 }
 
+// ── TEE type-zone helpers (P4-R004) — extracted from _renderTEEModal and switchTEEType ──
+function _buildTEEIdentityFields(type, item, defaultStatus) {
+  // P4-R008b: Relocated from the former _buildTEEDetailsTop into the unified top
+  // "identity bar" (Title → Type/Priority/Status → Details) per P4-D017, replacing
+  // the r008a grid-based exploration (unaccepted). Status and Priority no longer
+  // render inside the Details group, and their visible triggers are now restyled
+  // as compact pill-shaped dropdown buttons (.tee-identity-pill, matching the
+  // app's existing subfilter-pill visual language, e.g. .kb-dropdown-btn's "All
+  // Dates ▼") instead of full-width .form-select-styled buttons. Markup/IDs/
+  // value-holder contract is otherwise unchanged from P4-R006-fix1/P4-R007-fix1:
+  // the hidden #tee-status/#tee-priority inputs remain the real value-bearing
+  // elements saveTEEModal() reads via document.getElementById(...)?.value — only
+  // visual styling and DOM position changed, plus the internal order swapped to
+  // Priority-then-Status (was Status-then-Priority) to match the owner-approved
+  // Type / Priority / Status bar order from P4-D017.
+  // P4-R006-fix1: default Task status is now 'To Do' (owner request; was 'Backlog'),
+  // and the resolved status is normalized for `type` via _normalizeTEEStatusForType
+  // — this is what stops an Entry's 'Open' (or any other type's status) from
+  // silently surviving a type switch as an invalid Task status, and vice versa.
+  if (type === 'task') {
+    const _rawStatus = parseStatus(item?.status || defaultStatus || 'To Do').state || 'To Do';
+    const _curStatus = _normalizeTEEStatusForType('task', _rawStatus);
+    return `
+    <input type="hidden" id="tee-priority" value="${item?.priority||'Medium'}">
+    <div class="tee-identity-group">
+      <span class="tee-side-label">Priority</span>
+      <button type="button" id="tee-priority-trigger" class="tee-identity-pill tee-priority-trigger" onclick="openTEEPriorityDropdown(this, event)">
+        <span class="tee-identity-pill-main">
+          <span class="status-dot" id="tee-priority-trigger-dot" style="background:${getPri(item?.priority||'Medium').bar}"></span>
+          <span id="tee-priority-trigger-label" class="tee-identity-pill-label">${item?.priority||'Medium'}</span>
+        </span>
+        <span class="tee-identity-pill-chevron">&#9660;</span>
+      </button>
+    </div>
+    <input type="hidden" id="tee-status" value="${_curStatus}">
+    <div class="tee-identity-group">
+      <span class="tee-side-label">Status</span>
+      <button type="button" id="tee-status-trigger" class="tee-identity-pill tee-status-trigger" onclick="openTEEStatusDropdown('${type}', this, event)">
+        <span class="tee-identity-pill-main">
+          <span class="status-dot" id="tee-status-trigger-dot" style="background:${getStatusColor(_curStatus)}"></span>
+          <span id="tee-status-trigger-label" class="tee-identity-pill-label">${_curStatus}</span>
+        </span>
+        <span class="tee-identity-pill-chevron">&#9660;</span>
+      </button>
+    </div>`;
+  }
+  const _rawStatus = parseStatus(item?.status||defaultStatus||'Open').state||'Open';
+  const _curStatus = _normalizeTEEStatusForType(type, _rawStatus);
+  return `
+    <input type="hidden" id="tee-priority" value="${item?.priority||'Medium'}">
+    <div class="tee-identity-group">
+      <span class="tee-side-label">Priority</span>
+      <button type="button" id="tee-priority-trigger" class="tee-identity-pill tee-priority-trigger" onclick="openTEEPriorityDropdown(this, event)">
+        <span class="tee-identity-pill-main">
+          <span class="status-dot" id="tee-priority-trigger-dot" style="background:${getPri(item?.priority||'Medium').bar}"></span>
+          <span id="tee-priority-trigger-label" class="tee-identity-pill-label">${item?.priority||'Medium'}</span>
+        </span>
+        <span class="tee-identity-pill-chevron">&#9660;</span>
+      </button>
+    </div>
+    <input type="hidden" id="tee-status" value="${_curStatus}">
+    <div class="tee-identity-group">
+      <span class="tee-side-label">Status</span>
+      <button type="button" id="tee-status-trigger" class="tee-identity-pill tee-status-trigger" onclick="openTEEStatusDropdown('${type}', this, event)">
+        <span class="tee-identity-pill-main">
+          <span class="status-dot" id="tee-status-trigger-dot" style="background:${getStatusColor(_curStatus)}"></span>
+          <span id="tee-status-trigger-label" class="tee-identity-pill-label">${_curStatus}</span>
+        </span>
+        <span class="tee-identity-pill-chevron">&#9660;</span>
+      </button>
+    </div>`;
+}
+function _buildTEEDetailsBottom(type, item, d) {
+  if (type === 'task') return `
+    <div class="tee-compact-pair">
+      <div class="tee-compact-field">
+        <span class="tee-side-label">Start Date</span>
+        <input class="form-input" type="date" id="tee-startDate" value="${item?.startDate||''}">
+      </div>
+      <div class="tee-compact-field">
+        <span class="tee-side-label">Due Date</span>
+        <input class="form-input" type="date" id="tee-dueDate" value="${item?.dueDate||d}">
+      </div>
+    </div>`;
+  // P4-R011b: Event Color removed (discovery basis P4-D021a) — the former
+  // Date+Color compact-pair is gone; id="tee-color"/type="color" no longer
+  // render anywhere in Event's Add/Edit form.
+  // P4-R011b-fix1: Date+Start Time / End Time-alone (P4-R011b's initial
+  // layout) read as a lonely, visually awkward full-width End Time row —
+  // corrected per owner decision (Option B) to Date alone as its own
+  // standalone .tee-compact-field row, with Start Time + End Time paired
+  // together in one .tee-compact-pair below it. Field IDs/labels unchanged
+  // (id="tee-date"/"Date", id="tee-time"/"Start Time", id="tee-endTime"/
+  // "End Time"); no new CSS needed — .tee-compact-pair/.tee-compact-field
+  // already handle both a two-field row and a lone single-field row
+  // generically, the same reuse P4-R011b itself relied on.
+  if (type === 'event') return `
+    <div class="tee-compact-field">
+      <span class="tee-side-label">Date</span>
+      <input class="form-input" type="date" id="tee-date" value="${item?.date||d}">
+    </div>
+    <div class="tee-compact-pair">
+      <div class="tee-compact-field">
+        <span class="tee-side-label">Start Time</span>
+        <input class="form-input" type="time" id="tee-time" value="${item?.time||'09:00'}">
+      </div>
+      <div class="tee-compact-field">
+        <span class="tee-side-label">End Time</span>
+        <input class="form-input" type="time" id="tee-endTime" value="${item?.endTime||''}">
+      </div>
+    </div>`;
+  return `
+    <div class="tee-compact-pair">
+      <div class="tee-compact-field">
+        <span class="tee-side-label">Date</span>
+        <input class="form-input" type="date" id="tee-date" value="${item?.date||d}">
+      </div>
+      <div class="tee-compact-field">
+        <span class="tee-side-label">Time</span>
+        <input class="form-input" type="time" id="tee-time" value="${item?.time||'09:00'}">
+      </div>
+    </div>`;
+}
+function _buildTEEAssignFields(type, item, assignees) {
+  // P4-R009b: Assign is now people-only for every type — Dept relocated to
+  // Context (see _buildTEEContextFields, unchanged since P4-R009b-fix1).
+  // Event/Entry show a single full-width Participants picker, via the
+  // buildPeoplePicker() Suggested/Selected foundation against the same
+  // #tee-contributors id buildChipSelect used to (buildChipSelect itself is
+  // left untouched — it has no other caller, see P4-D019 §K).
+  //
+  // P4-R009c: Task's visible Lead <select> (used P4-R009b through fix6) is
+  // replaced by a hidden id="tee-lead" value-holder — Lead is now expressed
+  // entirely through the ★/☆ star on assignee chips (owner decisions 5-9),
+  // not a separate dropdown. The task's own "Important implementation
+  // contract" requires exactly this: #tee-lead must keep existing as a real
+  // element with a real .value, even with the visible dropdown removed, so
+  // every existing reader (saveTEEModal, quick-add capture/restore,
+  // _peoplePickerRegroup/_peoplePickerMakeLead/_peoplePickerClearLead) keeps
+  // working via plain document.getElementById('tee-lead').value — none of
+  // those call sites needed to change. Since the Lead column is gone, Task's
+  // former two-column .tee-people-row (see fix2/fix3 history above) is no
+  // longer needed here — Task now uses the same single full-width
+  // .form-group wrapper Event/Entry already used (the old .tee-people-row/
+  // .tee-people-lead-*/.tee-people-contrib-label CSS is left in place,
+  // unused, per "no opportunistic cleanup"). Selected now receives the FULL
+  // assignees set (Lead + Contributors), not Contributors alone — this is
+  // owner decision 4/13: Selected is the single source of truth for
+  // everyone involved in the Task, Lead included, so the Lead's chip shows
+  // with a star instead of incorrectly appearing in Suggested as if not yet
+  // involved.
+  //
+  // P4-R009c-fix1: the outer "Contributors"/"Participants" <label> is
+  // removed here — buildPeoplePicker now renders its own header row
+  // (opts.assigneeLabel) as part of the new row order (item A/B/C: header
+  // → pills → search → suggested), so a separate label above the whole
+  // picker would be redundant. This is a visible-label-only rename (item
+  // C) — the field id, saved data, and getChipSelections contract are all
+  // unchanged. Lead is passed pre-sorted first (allSelected) so it renders
+  // first in Assignees from the very first paint (item G).
+  if (type === 'task') {
+    const parsedAssignees = parseAssignees(item?.assignees||'');
+    const currentLead = parsedAssignees.lead || '';
+    const allSelected = [currentLead, ...parsedAssignees.contributors].filter(Boolean);
+    return `
+    <div class="form-group">
+      <input type="hidden" id="tee-lead" value="${currentLead}">
+      ${buildPeoplePicker('tee-contributors', assignees, allSelected, { showAdd: true, leadMode: true, leadName: currentLead, assigneeLabel: 'Assignees' })}
+    </div>`;
+  }
+  return `
+    <div class="form-group">
+      ${buildPeoplePicker('tee-contributors', assignees, splitAssigneeNames(item?.assignees), { showAdd: true, assigneeLabel: 'Participants' })}
+    </div>`;
+}
+function _buildTEEContextFields(type, item) {
+  // P4-R009b: Dept relocated here from Assign (was Task-only at the time).
+  // P4-R010-fix2: side-by-side .tee-compact-pair (Row 1 of the Context
+  // card), Dept before Project ("Row 1: DEPT | PROJECT").
+  // P4-R011a: Context standardization (discovery basis P4-D021/P4-D021a) —
+  // Dept + Project now render identically for Task, Event, and Entry, since
+  // only one type branch is ever mounted at a time so id="tee-dept"/
+  // id="tee-project" reuse across types is safe (same pattern already used
+  // by every other tee-* field). Event previously returned '' here (empty
+  // Context zone, relying on the `:empty` CSS rule to collapse it); Entry
+  // previously rendered Project alone. Both now get the exact same pair
+  // markup Task already had — no new CSS, no new IDs, no new helper.
+  // saveTEEModal, quick-add capture/restore, and _teeRowToItem all already
+  // address tee-dept/tee-project via getElementById/property name, which is
+  // location- and type-agnostic (P4-D019 §E) — so this markup change is the
+  // only render-side edit needed.
+  return `
+    <div class="tee-compact-pair">
+      <div class="tee-compact-field">
+        <span class="tee-side-label">Dept</span>
+        <input class="form-input" id="tee-dept" value="${item?.dept||''}" placeholder="Team / dept">
+      </div>
+      <div class="tee-compact-field">
+        <span class="tee-side-label">Project</span>
+        <input class="form-input" id="tee-project" value="${item?.project||''}" placeholder="Project name">
+      </div>
+    </div>`;
+}
+
 /* ── UNIFIED TEE MODAL (Task / Event / Entry) ── */
 // openTEEModal(itemId, forceType, defaultDate, defaultStatus)
 // ── TEE ADD / EDIT MODAL ─────────────────────────────────────
@@ -7850,12 +9183,20 @@ function switchTEEType(newType) {
   const existing    = itemId ? STATE.items.find(i => i.id === itemId) : null;
 
   // Capture whatever the user has already typed in shared fields
+  // P4-R011a: dept/project added — Context standardization (discovery basis
+  // P4-D021a) means Dept/Project now render for every type, so an in-
+  // progress value typed on a new, unsaved item must survive a type switch
+  // the same way category/tags/notes already do. Same fallback shape as
+  // every other carried field: read the live DOM value if the field is
+  // currently mounted, else fall back to the existing saved item's value.
   const carried = {
     title:    document.getElementById('tee-title')?.value    || existing?.title    || '',
     desc:     document.getElementById('tee-desc')?.value     || existing?.desc     || '',
     category: document.getElementById('tee-category')?.value || existing?.category || '',
     tags:     document.getElementById('tee-tags')?.value     || (Array.isArray(existing?.tags) ? existing.tags.join(', ') : '') || '',
     notes:    document.getElementById('tee-notes')?.value    || existing?.notes    || '',
+    dept:     document.getElementById('tee-dept')?.value     || existing?.dept     || '',
+    project:  document.getElementById('tee-project')?.value  || existing?.project  || '',
     subtasks: (() => {
       const list = document.getElementById('tee-subtask-list');
       if (!list) return existing?.subtasks || [];
@@ -7875,137 +9216,88 @@ function switchTEEType(newType) {
     })(),
   };
 
-  // Update type tab active styles without re-rendering the whole modal
-  document.querySelectorAll('.tee-type-btn').forEach(btn => {
-    const isActive = btn.getAttribute('onclick').includes(`'${newType}'`);
-    btn.classList.toggle('active', isActive);
-    btn.style.background   = isActive ? 'rgba(40,92,112,0.2)' : '';
-    btn.style.color        = isActive ? 'var(--accent2)' : '';
-    btn.style.borderColor  = isActive ? 'rgba(79,154,181,0.35)' : '';
-  });
+  // P4-R008b: Type is now a compact pill dropdown trigger (.tee-identity-pill),
+  // not a row of .tee-type-btn tabs — update the hidden #tee-current-type
+  // value-holder (read by quickAddPersonFromModal instead of the old
+  // .tee-type-btn.active selector) and sync the trigger's icon/label in place.
+  const typeHolder = document.getElementById('tee-current-type');
+  if (typeHolder) typeHolder.value = newType;
+  _syncTEETypeTrigger(newType);
 
   // Update the save button's type argument
   const saveBtn = document.querySelector('.modal .btn-primary[onclick^="saveTEEModal"]');
   if (saveBtn) saveBtn.setAttribute('onclick', `saveTEEModal('${itemId}','${newType}')`);
 
-  // Swap only the type-specific fields section
-  const fieldsEl = document.getElementById('tee-type-fields');
-  if (!fieldsEl) return;
+  // Update the header title to reflect the new type (P4-R003a). P4-R008b-fix1:
+  // header text is now uppercase ("NEW TASK"/"EDIT TASK") and no longer shows
+  // the TEE internal id/counter — itemId is still tracked internally (hidden
+  // field, Save button argument) and unaffected, only this visible label changed.
+  const headerTitleEl = document.getElementById('tee-modal-header-title');
+  if (headerTitleEl) {
+    const typeLabels = { task:'Task', event:'Event', entry:'Entry' };
+    headerTitleEl.textContent = !itemId
+      ? `NEW ${(typeLabels[newType] || 'ITEM').toUpperCase()}`
+      : `EDIT ${(typeLabels[newType] || 'ITEM').toUpperCase()}`;
+  }
+
+  // Swap only the type-specific field zones (Identity/Details-bottom/Assign/Context
+  // — P4-R003a; identity zone renamed/relocated out of Details in P4-R008a/b)
+  const identityEl      = document.getElementById('tee-type-fields-identity');
+  const detailsBottomEl = document.getElementById('tee-type-fields-details-bottom');
+  const assignEl        = document.getElementById('tee-type-fields-assign');
+  const contextEl       = document.getElementById('tee-type-fields-context');
+  if (!identityEl || !detailsBottomEl || !assignEl || !contextEl) return;
 
   const d = defaultDate || (existing?.date || existing?.dueDate || fmtDate(TODAY));
   const assignees = STATE.people.map(p => p.name).filter(Boolean);
 
-  let newFields = '';
-  if (newType === 'task') {
-    newFields = `
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Status</label>
-          ${(newType === 'task')
-            ? `<select class="form-select" id="tee-status">
-                ${KANBAN_COLS.map(c => `<option value="${c.id}"${(parseStatus(existing?.status || defStatus || 'Backlog').state || 'Backlog') === c.id ? ' selected' : ''}>${c.label}</option>`).join('')}
-               </select>`
-            : `<select class="form-select" id="tee-status">
-                ${['Open','Done'].map(s => `<option value="${s}"${(parseStatus(existing?.status || defStatus || 'Open').state || 'Open') === s ? ' selected' : ''}>${s}</option>`).join('')}
-               </select>`
-          }</div>
-        <div class="form-group"><label class="form-label">Priority</label>
-          <select class="form-select" id="tee-priority">
-            ${['Critical','High','Medium','Low'].map(p => `<option${(existing?.priority||'Medium')===p?' selected':''}>${p}</option>`).join('')}
-          </select></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
-            Lead
-            <button type="button" class="quick-add-person-btn" onclick="quickAddPersonFromModal()" title="Add a new team member">+ Add Team Member</button>
-          </label>
-          <select class="form-select" id="tee-lead">
-            <option value="">— Unassigned —</option>
-            ${assignees.map(a => `<option${parseAssignees(existing?.assignees||'').lead===a?' selected':''}>${a}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group"><label class="form-label">Department</label>
-          <input class="form-input" id="tee-dept" value="${existing?.dept||''}" placeholder="Team / dept"></div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Contributors <span style="font-size:10px;color:var(--muted);font-weight:400">optional — tap to select</span></label>
-        ${buildChipSelect('tee-contributors', assignees, parseAssignees(existing?.assignees||'').contributors)}
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Start Date</label>
-          <input class="form-input" type="date" id="tee-startDate" value="${existing?.startDate||''}"></div>
-        <div class="form-group"><label class="form-label">Due Date</label>
-          <input class="form-input" type="date" id="tee-dueDate" value="${existing?.dueDate||d}"></div>
-      </div>
-      <div class="form-group"><label class="form-label">Project</label>
-        <input class="form-input" id="tee-project" value="${existing?.project||''}" placeholder="Project name"></div>`;
-  } else if (newType === 'event') {
-    newFields = `
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Date *</label>
-          <input class="form-input" type="date" id="tee-date" value="${existing?.date||d}"></div>
-        <div class="form-group"><label class="form-label">Accent Color</label>
-          <input class="form-input" type="color" id="tee-color" value="${existing?.color||'#22D3EE'}"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Start Time</label>
-          <input class="form-input" type="time" id="tee-time" value="${existing?.time||'09:00'}"></div>
-        <div class="form-group"><label class="form-label">End Time</label>
-          <input class="form-input" type="time" id="tee-endTime" value="${existing?.endTime||''}"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Priority</label>
-          <select class="form-select" id="tee-priority">
-            ${['Critical','High','Medium','Low'].map(p => `<option${(existing?.priority||'Medium')===p?' selected':''}>${p}</option>`).join('')}
-          </select></div>
-        <div class="form-group"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Status</label>
-          <select class="form-select" id="tee-status">
-            ${['Open','Done'].map(s => `<option value="${s}"${(parseStatus(existing?.status||'Open').state||'Open')===s?' selected':''}>${s}</option>`).join('')}
-          </select></div>
-        <div class="form-group"></div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Participants <span style="font-size:10px;color:var(--muted);font-weight:400">optional — tap to select</span></label>
-        ${buildChipSelect('tee-contributors', assignees, splitAssigneeNames(existing?.assignees))}
-      </div>`;
-  } else { // entry
-    newFields = `
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Date *</label>
-          <input class="form-input" type="date" id="tee-date" value="${existing?.date||d}"></div>
-        <div class="form-group"><label class="form-label">Time</label>
-          <input class="form-input" type="time" id="tee-time" value="${existing?.time||'09:00'}"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Priority</label>
-          <select class="form-select" id="tee-priority">
-            ${['Critical','High','Medium','Low'].map(p => `<option${(existing?.priority||'Medium')===p?' selected':''}>${p}</option>`).join('')}
-          </select></div>
-        <div class="form-group"><label class="form-label">Project</label>
-          <input class="form-input" id="tee-project" value="${existing?.project||''}" placeholder="Project name"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Status</label>
-          <select class="form-select" id="tee-status">
-            ${['Open','Done'].map(s => `<option value="${s}"${(parseStatus(existing?.status||'Open').state||'Open')===s?' selected':''}>${s}</option>`).join('')}
-          </select></div>
-        <div class="form-group"></div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Participants <span style="font-size:10px;color:var(--muted);font-weight:400">optional — tap to select</span></label>
-        ${buildChipSelect('tee-contributors', assignees, splitAssigneeNames(existing?.assignees))}
-      </div>`;
-  }
+  const newIdentity      = _buildTEEIdentityFields(newType, existing, defStatus);
+  const newDetailsBottom = _buildTEEDetailsBottom(newType, existing, d);
+  const newAssign        = _buildTEEAssignFields(newType, existing, assignees);
+  const newContext       = _buildTEEContextFields(newType, existing);
 
-  // Smooth swap with a brief fade
-  fieldsEl.style.opacity = '0';
-  fieldsEl.style.transition = 'opacity 0.12s';
+  // Smooth swap with a brief fade — same 80ms opacity-fade pattern as before,
+  // now applied across all four zones so the type-switch transition still plays
+  [identityEl, detailsBottomEl, assignEl, contextEl].forEach(el => {
+    el.style.opacity = '0';
+    el.style.transition = 'opacity 0.12s';
+  });
   setTimeout(() => {
-    fieldsEl.innerHTML = newFields;
-    fieldsEl.style.opacity = '1';
+    identityEl.innerHTML     = newIdentity;
+    detailsBottomEl.innerHTML = newDetailsBottom;
+    assignEl.innerHTML        = newAssign;
+    contextEl.innerHTML       = newContext;
+    [identityEl, detailsBottomEl, assignEl, contextEl].forEach(el => { el.style.opacity = '1'; });
+    // P4-R009b-fix5: buildPeoplePicker (called synchronously above, inside
+    // _buildTEEAssignFields) schedules its own setTimeout(0) initial regroup
+    // at the moment it's called — well before this 80ms-delayed innerHTML
+    // swap actually mounts the new #tee-contributors. That early regroup
+    // finds nothing (or the old, about-to-be-replaced picker) and never
+    // measures Browse All's real overflow for the newly switched type,
+    // leaving it stuck at its default hidden state — this is why Browse All
+    // disappeared after internal Task/Event/Entry switching even though it
+    // appeared correctly on a fresh "Open New ___" (openModal() there
+    // inserts synchronously, so the setTimeout(0) always finds the right
+    // DOM already in place — only switchTEEType's deferred swap didn't).
+    // Re-running the regroup here, now that the new picker is actually in
+    // the DOM, fixes this without touching buildPeoplePicker's own timing at
+    // all — _peoplePickerRegroup's existing disconnect/reconnect wrapper and
+    // requestAnimationFrame-based overflow measurement apply exactly as they
+    // already do everywhere else it's called from.
+    _peoplePickerRegroup('tee-contributors');
+    // P4-R011a: restore any in-progress Dept/Project value into the newly
+    // mounted Context zone. Unlike title/desc/category/tags/notes (shared
+    // fields that live outside the swapped zones and are never destroyed —
+    // see the synchronous restore block below), #tee-dept/#tee-project are
+    // rendered by _buildTEEContextFields *inside* contextEl, so they are
+    // torn down and rebuilt by the innerHTML swap above. newContext was
+    // already generated from `existing` (not from the live carried value),
+    // so on a brand-new item it renders blank — restoring here, after the
+    // new markup is actually in the DOM, is what makes an in-progress typed
+    // value survive the switch, the same way it already does for the
+    // shared fields.
+    if (carried.dept)    { const el = document.getElementById('tee-dept');    if (el) el.value = carried.dept; }
+    if (carried.project) { const el = document.getElementById('tee-project'); if (el) el.value = carried.project; }
   }, 80);
 
   // Restore carried values into shared fields
@@ -8014,6 +9306,179 @@ function switchTEEType(newType) {
   if (carried.category) { const el = document.getElementById('tee-category'); if (el) el.value = carried.category; }
   if (carried.tags)     { const el = document.getElementById('tee-tags');     if (el) el.value = carried.tags; }
   if (carried.notes)    { const el = document.getElementById('tee-notes');    if (el) el.value = carried.notes; }
+}
+
+// ── TEE TAGS CHIP-ENTRY (P4-R010) ──────────────────────────────────────────
+// Discovery basis: P4-D020. Dedicated namespace only — deliberately not
+// sharing .sticky-tag-chip/.sticky-tag-option (Sticky notes, window._sticky-
+// ModalTags array-as-truth model) or .people-picker/.chip-option/.people-chip
+// (Assignees/Participants). #tee-tags is the single save-time value-holder
+// saveTEEModal already reads unchanged — it is DOM-authoritative (like every
+// other TEE field), never a separate in-memory array. Suggestions are in-flow
+// (no floating caret-position popup), sourced from the existing, unchanged
+// getAllKnownTags(); chip colors from the existing, unchanged tagColor().
+// Owner decisions (this checkpoint): strip one leading # before storage; do
+// not force lowercase; no strict character sanitization; trim outer spaces;
+// case-insensitive duplicate prevention within the open editor; no migration
+// of previously-saved tag data.
+
+// Normalize a typed/clicked tag label for storage: trim outer spaces, strip
+// exactly one leading '#', trim again (handles "# work" -> "work"). Case is
+// preserved — no lowercasing, no character stripping beyond the leading '#'.
+function _teeTagsNormalize(raw) {
+  let t = (raw || '').toString().trim();
+  if (t.charAt(0) === '#') t = t.slice(1);
+  return t.trim();
+}
+
+// Read the current selection from the value-holder (DOM-authoritative read,
+// matching every other TEE field's save-time contract).
+function _teeTagsGetSelected() {
+  const el = document.getElementById('tee-tags');
+  if (!el) return [];
+  return el.value.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+// Write the selection back to the value-holder as the existing comma-
+// delimited format, then re-render the visible chip/suggestion UI.
+function _teeTagsSetSelected(tags) {
+  const el = document.getElementById('tee-tags');
+  if (!el) return;
+  el.value = tags.join(', ');
+  _teeTagsRender();
+}
+
+// Add a tag: normalize, reject if blank, skip (but still refresh/clear) if a
+// case-insensitive duplicate of an already-selected tag, otherwise append
+// (typed/clicked case preserved) and persist via _teeTagsSetSelected.
+function _teeTagsAdd(rawValue) {
+  const tag = _teeTagsNormalize(rawValue);
+  if (tag) {
+    const current = _teeTagsGetSelected();
+    const isDuplicate = current.some(t => t.toLowerCase() === tag.toLowerCase());
+    if (!isDuplicate) {
+      current.push(tag);
+      _teeTagsSetSelected(current);
+    }
+  }
+  const input = document.getElementById('tee-tags-input');
+  if (input) { input.value = ''; input.focus(); }
+  _teeTagsRender();
+}
+
+// Remove exactly the tag named on the chip the × button belongs to
+// (case-insensitive match against the stored value).
+function _teeTagsRemove(btnEl) {
+  const chip = btnEl.closest('.tee-tag-chip');
+  if (!chip) return;
+  const tag = chip.dataset.tag;
+  const current = _teeTagsGetSelected();
+  const next = current.filter(t => t.toLowerCase() !== tag.toLowerCase());
+  _teeTagsSetSelected(next);
+  const input = document.getElementById('tee-tags-input');
+  if (input) input.focus();
+}
+
+function _teeTagsInputKeydown(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  _teeTagsAdd(e.target.value);
+}
+
+// Re-render chips (from the value-holder) and in-flow suggestions (from the
+// existing, unchanged getAllKnownTags(), filtered by the current typed query
+// and excluding already-selected tags, capped to avoid a wall of pills).
+// P4-R010-fix1: suggestions are no longer an always-visible row — they only
+// render/show while the Tags input is focused AND has a non-empty typed
+// query, as a small popover anchored under the input (.tee-tag-suggestions,
+// position:absolute in CSS) — not Sticky's caret-position mirror popup, just
+// a plain dropdown anchored to the input element's own box. Chips (the
+// selected-tags row) remain always visible regardless of focus/typing state.
+function _teeTagsRender() {
+  const chipsEl = document.getElementById('tee-tags-chips');
+  const suggEl  = document.getElementById('tee-tags-suggestions');
+  const input   = document.getElementById('tee-tags-input');
+  if (!chipsEl || !suggEl) return;
+
+  const selected      = _teeTagsGetSelected();
+  const selectedLower = selected.map(t => t.toLowerCase());
+
+  chipsEl.innerHTML = selected.length ? selected.map(t => {
+    const tc = tagColor(t);
+    return `<span class="tee-tag-chip" data-tag="${t}" style="background:${tc.bg};color:${tc.text};border-color:${tc.border}">#${t}<button type="button" class="tee-tag-chip-remove" title="Remove ${t}" aria-label="Remove ${t}" onclick="event.stopPropagation();_teeTagsRemove(this)">&times;</button></span>`;
+  }).join('') : '<span class="tee-tag-empty">No tags yet</span>';
+
+  const rawInputValue = input?.value || '';
+  const hasQuery  = rawInputValue.trim().length > 0;
+  const isFocused = document.activeElement === input;
+
+  if (!hasQuery || !isFocused) {
+    suggEl.innerHTML = '';
+    suggEl.classList.remove('tee-tag-suggestions-open');
+    return;
+  }
+
+  const query = rawInputValue.trim().toLowerCase().replace(/^#/, '');
+  const known = getAllKnownTags();
+  const matches = known.filter(t => !selectedLower.includes(t) && t.includes(query)).slice(0, 8);
+  const suggestionItems = matches.map(t =>
+    `<span class="tee-tag-suggestion" data-tag="${t}" onclick="_teeTagsAdd(this.dataset.tag)">#${t}</span>`
+  ).join('');
+
+  const rawTyped      = _teeTagsNormalize(rawInputValue);
+  const rawTypedLower = rawTyped.toLowerCase();
+  const alreadyKnown    = rawTypedLower && known.includes(rawTypedLower);
+  const alreadySelected = rawTypedLower && selectedLower.includes(rawTypedLower);
+  const createOption = (rawTyped && !alreadyKnown && !alreadySelected)
+    ? `<span class="tee-tag-suggestion tee-tag-suggestion-create" data-tag="${rawTyped}" onclick="_teeTagsAdd(this.dataset.tag)">+ Create #${rawTyped}</span>`
+    : '';
+
+  const html = suggestionItems + createOption;
+  suggEl.innerHTML = html;
+  suggEl.classList.toggle('tee-tag-suggestions-open', !!html);
+}
+
+// P4-R010-fix2: the Tags widget is now built as two separately-placed
+// pieces (Context Row 2 pairs the input with Category; the chips render on
+// their own full-width Row 3 below) — split so each can be positioned
+// independently in _renderTEEModal while staying synced through the shared
+// #tee-tags value-holder and #tee-tags-chips/#tee-tags-suggestions ids,
+// which _teeTagsRender() already looks up by id regardless of where in the
+// DOM tree they physically sit.
+
+// Builds the "Tags" side-label compact-field: the hidden value-holder,
+// the visible search input, and its suggestions popover. #tee-tags stays
+// the value-holder saveTEEModal already reads unchanged. Deferred via
+// setTimeout(0), matching buildPeoplePicker's own established technique, so
+// the initial render runs after openModal() has actually inserted this
+// markup (and the chips-row piece below) into the DOM. The suggestions
+// popover (.tee-tag-suggestions) sits inside a position:relative wrapper
+// (.tee-tag-input-wrap) so it can anchor directly under the input via plain
+// CSS, with no caret-tracking JS. Blur hides it on a short delay (standard
+// dismissible-dropdown technique — not Sticky-specific) so a click on a
+// suggestion registers before it disappears; _teeTagsAdd() re-focuses the
+// input afterward, so a genuine add correctly leaves the popover closed
+// (input is now empty) rather than reopening it.
+function _buildTeeTagsInputField(initialValue) {
+  const initial = (initialValue || '').toString();
+  setTimeout(() => _teeTagsRender(), 0);
+  return `
+    <div class="tee-compact-field tee-context-tags-field">
+      <span class="tee-side-label">Tags</span>
+      <div class="tee-tag-input-wrap">
+        <input type="hidden" id="tee-tags" value="${initial.replace(/"/g,'&quot;')}">
+        <input type="text" class="form-input tee-tag-input" id="tee-tags-input" placeholder="Type a tag, press Enter…" autocomplete="off"
+          oninput="_teeTagsRender()" onkeydown="_teeTagsInputKeydown(event)"
+          onfocus="_teeTagsRender()" onblur="setTimeout(_teeTagsRender, 200)">
+        <div class="tee-tag-suggestions" id="tee-tags-suggestions"></div>
+      </div>
+    </div>`;
+}
+
+// Builds the full-width selected-tags chips row (Context Row 3). Populated
+// entirely by _teeTagsRender() via #tee-tags-chips; starts empty here.
+function _buildTeeTagsChipsRow() {
+  return `<div class="tee-tag-chips" id="tee-tags-chips"></div>`;
 }
 
 // _renderTEEModal: internal renderer — builds and opens the form
@@ -8026,140 +9491,95 @@ function _renderTEEModal(item, type, defaultDate, defaultStatus, carried) {
   // Pre-fill values: carried (from type switch) > item > defaults
   const val = (field, fallback='') => carried?.[field] ?? item?.[field] ?? fallback;
 
-  // Type switcher tabs
-  const typeTabs = ['task','event','entry'].map(t => {
-    const icons  = { task:'📋', event:'📆', entry:'📝' };
-    const labels = { task:'Task',  event:'Event',  entry:'Entry' };
-    const active = t === type;
-    return `<button class="tee-type-btn${active?' active':''}"
-      onclick="switchTEEType('${t}')"
-      style="${active ? 'background:rgba(40,92,112,0.22);color:var(--accent2);border-color:rgba(79,154,181,0.35)' : ''}">
-      ${icons[t]} ${labels[t]}
-    </button>`;
-  }).join('');
+  // Type-aware header title — e.g. "NEW TASK" / "EDIT EVENT" (P4-R003a).
+  // P4-R008b-fix1: uppercase, no visible TEE internal id/counter — `id` is
+  // still tracked internally (hidden field, Save button argument) below,
+  // just no longer interpolated into this visible header string.
+  const typeLabels  = { task:'Task', event:'Event', entry:'Entry' };
+  const headerTitle = isNew
+    ? `NEW ${(typeLabels[type] || 'ITEM').toUpperCase()}`
+    : `EDIT ${(typeLabels[type] || 'ITEM').toUpperCase()}`;
 
-  // Hidden state fields (carry id, defaultDate, defaultStatus across type switches)
+  // P4-R008b: Type trigger — compact pill dropdown (.tee-identity-pill), replacing
+  // the former .tee-type-tabs large pill-tab row (P4-R003b). This button is a
+  // static element — it is never destroyed/rebuilt by switchTEEType (unlike the
+  // relocated Status/Priority pair below, whose onclick needs a fresh type-aware
+  // argument baked in). Only its icon/label are updated in place, via
+  // _syncTEETypeTrigger, on every type switch — see switchTEEType.
+  const typeIcons = { task:'ti-clipboard-list', event:'ti-calendar-event', entry:'ti-notes' };
+  const typeTrigger = `
+    <div class="tee-identity-group">
+      <span class="tee-side-label">Type</span>
+      <button type="button" id="tee-type-trigger" class="tee-identity-pill" onclick="openTEETypeDropdown(this, event)">
+        <span class="tee-identity-pill-main">
+          <i class="ti ${typeIcons[type] || 'ti-clipboard-list'}" id="tee-type-trigger-icon" style="font-size:13px"></i>
+          <span id="tee-type-trigger-label" class="tee-identity-pill-label">${typeLabels[type] || 'Task'}</span>
+        </span>
+        <span class="tee-identity-pill-chevron">&#9660;</span>
+      </button>
+    </div>`;
+
+  // Hidden state fields (carry id, defaultDate, defaultStatus across type switches).
+  // P4-R008b: #tee-current-type is the new value-bearing "what type is this form
+  // currently showing" holder — replaces reading .tee-type-btn.active textContent
+  // (that markup no longer exists), and is kept in sync by switchTEEType on every
+  // type change. quickAddPersonFromModal() reads this instead of the old selector.
   const hiddenFields = `
     <input type="hidden" id="tee-hidden-id"     value="${id}">
     <input type="hidden" id="tee-hidden-date"   value="${defaultDate||''}">
-    <input type="hidden" id="tee-hidden-status" value="${defaultStatus||''}">`;
+    <input type="hidden" id="tee-hidden-status" value="${defaultStatus||''}">
+    <input type="hidden" id="tee-current-type"  value="${type}">`;
 
-  // ── TASK fields ──
-  const taskFields = type === 'task' ? `
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Status</label>
-        <select class="form-select" id="tee-status">
-          ${(type === 'task')
-            ? KANBAN_COLS.map(c => `<option value="${c.id}"${(parseStatus(item?.status || defaultStatus || 'Backlog').state || 'Backlog') === c.id ? ' selected' : ''}>${c.label}</option>`).join('')
-            : ['Open','Done'].map(s => `<option value="${s}"${(parseStatus(item?.status || defaultStatus || 'Open').state || 'Open') === s ? ' selected' : ''}>${s}</option>`).join('')
-          }</select></div>
-      <div class="form-group"><label class="form-label">Priority</label>
-        <select class="form-select" id="tee-priority">
-          ${['Critical','High','Medium','Low'].map(p => `<option${(item?.priority||'Medium')===p?' selected':''}>${p}</option>`).join('')}
-        </select></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
-          Lead
-          <button type="button" class="quick-add-person-btn" onclick="quickAddPersonFromModal()" title="Add a new team member">+ Add Team Member</button>
-        </label>
-        <select class="form-select" id="tee-lead">
-          <option value="">— Unassigned —</option>
-          ${assignees.map(a => `<option${parseAssignees(item?.assignees||'').lead===a?' selected':''}>${a}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-group"><label class="form-label">Department</label>
-        <input class="form-input" id="tee-dept" value="${item?.dept||''}" placeholder="Team / dept"></div>
-    </div>
+  // ── Type-specific field zones — built by shared helpers (P4-R004; identity
+  // fields relocated out of Details and renamed in P4-R008a/P4-R008b, see below) ──
+  const identityFields      = _buildTEEIdentityFields(type, item, defaultStatus);
+  const detailsBottomFields = _buildTEEDetailsBottom(type, item, d);
+  const assignFields        = _buildTEEAssignFields(type, item, assignees);
+  const contextFields       = _buildTEEContextFields(type, item);
+
+  // ── Shared fields (all types) — distributed into Details/Context/Execution sections ──
+  // P4-R008b-fix1: Title's label is now a .tee-section-header (same class as
+  // Details/Assign/Context/Execution) instead of a small .form-label, so it
+  // reads as a top-level section header rather than a field label — visual
+  // polish only, id="tee-title" and validation (saveTEEModal's title-required
+  // check) unchanged. Placeholder is now generic "Title…" for all three types
+  // (was type-specific "Task title…"/"Event name…"/"Entry title…").
+  const titleField = `
+    <div class="tee-section-header">Title</div>
     <div class="form-group">
-      <label class="form-label">Contributors <span style="font-size:10px;color:var(--muted);font-weight:400">optional — tap to select</span></label>
-      ${buildChipSelect('tee-contributors', assignees, parseAssignees(item?.assignees||'').contributors)}
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Start Date</label>
-        <input class="form-input" type="date" id="tee-startDate" value="${item?.startDate||''}"></div>
-      <div class="form-group"><label class="form-label">Due Date</label>
-        <input class="form-input" type="date" id="tee-dueDate" value="${item?.dueDate||d}"></div>
-    </div>
-    <div class="form-group"><label class="form-label">Project</label>
-      <input class="form-input" id="tee-project" value="${item?.project||''}" placeholder="Project name"></div>` : '';
-
-  // ── EVENT fields ──
-  const eventFields = type === 'event' ? `
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Date *</label>
-        <input class="form-input" type="date" id="tee-date" value="${item?.date||d}"></div>
-      <div class="form-group"><label class="form-label">Accent Color</label>
-        <input class="form-input" type="color" id="tee-color" value="${item?.color||'#22D3EE'}"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Start Time</label>
-        <input class="form-input" type="time" id="tee-time" value="${item?.time||'09:00'}"></div>
-      <div class="form-group"><label class="form-label">End Time</label>
-        <input class="form-input" type="time" id="tee-endTime" value="${item?.endTime||''}"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Priority</label>
-        <select class="form-select" id="tee-priority">
-          ${['Critical','High','Medium','Low'].map(p => `<option${(item?.priority||'Medium')===p?' selected':''}>${p}</option>`).join('')}
-        </select></div>
-      <div class="form-group"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Status</label>
-        <select class="form-select" id="tee-status">
-          ${['Open','Done'].map(s => `<option value="${s}"${(parseStatus(item?.status||defaultStatus||'Open').state||'Open')===s?' selected':''}>${s}</option>`).join('')}
-        </select></div>
-      <div class="form-group"></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Participants <span style="font-size:10px;color:var(--muted);font-weight:400">optional — tap to select</span></label>
-      ${buildChipSelect('tee-contributors', assignees, splitAssigneeNames(item?.assignees))}
-    </div>` : '';
-
-  // ── ENTRY fields ──
-  const entryFields = type === 'entry' ? `
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Date *</label>
-        <input class="form-input" type="date" id="tee-date" value="${item?.date||d}"></div>
-      <div class="form-group"><label class="form-label">Time</label>
-        <input class="form-input" type="time" id="tee-time" value="${item?.time||'09:00'}"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Priority</label>
-        <select class="form-select" id="tee-priority">
-          ${['Critical','High','Medium','Low'].map(p => `<option${(item?.priority||'Medium')===p?' selected':''}>${p}</option>`).join('')}
-        </select></div>
-      <div class="form-group"><label class="form-label">Project</label>
-        <input class="form-input" id="tee-project" value="${item?.project||''}" placeholder="Project name"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Status</label>
-        <select class="form-select" id="tee-status">
-          ${['Open','Done'].map(s => `<option value="${s}"${(parseStatus(item?.status||defaultStatus||'Open').state||'Open')===s?' selected':''}>${s}</option>`).join('')}
-        </select></div>
-      <div class="form-group"></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Participants <span style="font-size:10px;color:var(--muted);font-weight:400">optional — tap to select</span></label>
-      ${buildChipSelect('tee-contributors', assignees, splitAssigneeNames(item?.assignees))}
-    </div>` : '';
-
-  // ── Shared fields (all types) ──
-  const sharedFields = `
-    <div class="form-group"><label class="form-label">Title *</label>
-      <input class="form-input" id="tee-title" value="${val('title')}" placeholder="${type==='task'?'Task title…':type==='event'?'Event name…':'Entry title…'}"></div>
+      <input class="form-input" id="tee-title" value="${val('title')}" placeholder="Title…"></div>`;
+  const descriptionField = `
     <div class="form-group"><label class="form-label">Description</label>
-      <textarea class="form-textarea" id="tee-desc" placeholder="Optional details…">${val('desc')}</textarea></div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Category</label>
-        <input class="form-input" id="tee-category" value="${val('category')}" placeholder="e.g. Meeting, Design…"></div>
-      <div class="form-group"><label class="form-label">Tags (comma-separated)</label>
-        <input class="form-input" id="tee-tags" value="${val('tags', Array.isArray(item?.tags)?item.tags.join(', '):'')||''}" placeholder="tag1, tag2…"></div>
-    </div>
+      <textarea class="form-textarea" id="tee-desc" placeholder="Optional details…">${val('desc')}</textarea></div>`;
+  // P4-R010-fix2: Context section is back to the original compact side-label
+  // field style. Row 1 (from #tee-type-fields-context, Task only): Dept |
+  // Project. Row 2: Category | Tags-input, in that DOM order — the visual
+  // desktop order is reversed to Tags-input | Category via
+  // .tee-context-tags-field/.tee-context-category-field's `order` CSS (see
+  // the CSS block), which is what lets Category naturally stack before the
+  // Tags block on mobile with zero extra mobile-specific markup. Row 3: the
+  // full-width tag chips row (categoryTagsChipsRow, below). Category's own
+  // field, id, value, and placeholder are unchanged from fix1/r010.
+  const categoryField = `
+    <div class="tee-compact-field tee-context-category-field">
+      <span class="tee-side-label">Category</span>
+      <input class="form-input" id="tee-category" value="${val('category')}" placeholder="e.g. Meeting, Design…">
+    </div>`;
+  // P4-R010: Tags chip-entry. #tee-tags remains the single save-time value-holder
+  // saveTEEModal already reads unchanged (now a hidden input; the chip UI is the
+  // visible representation, same "hidden value-holder + visual control" pattern
+  // already used for Status/Priority/Type/Lead). Initial value computed directly
+  // here (not via the shared val() helper) to avoid val()'s pre-existing quirk of
+  // returning the raw tags ARRAY (not a joined string) when carried is absent —
+  // discovery basis: P4-D020 §A/§E/§M.
+  const _teeTagsFallbackStr = Array.isArray(item?.tags) ? item.tags.join(', ') : (item?.tags || '');
+  const _teeTagsInitialValue = carried?.tags ?? _teeTagsFallbackStr;
+  const tagsInputField = _buildTeeTagsInputField(_teeTagsInitialValue);
+  const tagsChipsRow   = _buildTeeTagsChipsRow();
+  const notesField = `
     <div class="form-group"><label class="form-label">Notes</label>
-      <textarea class="form-textarea" id="tee-notes" placeholder="Additional notes…">${val('notes')}</textarea></div>
+      <textarea class="form-textarea" id="tee-notes" placeholder="Additional notes…">${val('notes')}</textarea></div>`;
+  const subtasksField = `
     <div class="form-group">
       <label class="form-label">Subtasks</label>
       <div id="tee-subtask-list" class="subtask-list" style="margin-bottom:4px">
@@ -8192,78 +9612,153 @@ function _renderTEEModal(item, type, defaultDate, defaultStatus, carried) {
   const isMobile     = window.innerWidth < 600;
   const panelId      = 'tee-pinned-panel';
   const panelBtnId   = 'tee-panel-toggle';
+  const panelSlotId  = 'tee-pinned-panel-slot';
+  const handleId     = 'tee-panel-handle';
+  const handleArrowId = 'tee-panel-handle-arrow';
 
+  // P4-R003c-v7: "more" is now conditional, reusing the EXISTING app-wide rule
+  // found in buildPinnedNotesPanel() (Today/Overview widget, ~L5598): a note
+  // only gets a "more" affordance when `s.text.length > 120`. That existing
+  // rule is character-length-based (not a post-render scrollHeight/clientHeight
+  // measurement), so there's no DOM-measurement step to reuse here — the
+  // condition is evaluated directly while building this string, exactly like
+  // the existing call site does. The TEE panel keeps its OWN existing toggle
+  // mechanism (classList.toggle('expanded'), matching .tee-panel-note-text's
+  // CSS) rather than calling the shared togglePinExpand() helper, because that
+  // helper reads/writes el.style.webkitLineClamp directly (inline style) and
+  // is not compatible with .tee-panel-note-text's class-based clamp toggle
+  // without also rewriting this panel's CSS to match — out of scope for a
+  // local "more" visibility fix, and not requested.
   const panelNotesHTML = pinnedForPanel.map((s, idx) => {
     const c = getStickyColor(s.colorIdx);
+    const needsMore = s.text.length > 120;
     return `<div style="border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:11px;line-height:1.55;font-weight:500;background:${c.bg};color:${c.text}">
       <div class="tee-panel-note-text" id="tpn-${idx}">${s.text}</div>
-      <button class="today-pinned-expand" id="tpn-btn-${idx}" style="color:${c.text}"
+      ${needsMore ? `<button class="today-pinned-expand" id="tpn-btn-${idx}" style="color:${c.text}"
         onclick="(function(){
           const t=document.getElementById('tpn-${idx}');
           const b=document.getElementById('tpn-btn-${idx}');
           const exp=t.classList.toggle('expanded');
           b.textContent=exp?'▲ less':'▼ more';
-        })()">▼ more</button>
+        })()">▼ more</button>` : ''}
     </div>`;
   }).join('');
 
+  // P4-R003c-v7: Pinned Notes inside TEE Add/Edit is reference-only — pinned-note
+  // creation stays in the Reminders/Sticky Notes flow (openPinnedNoteModal() is
+  // unchanged there). The "+ Add" buttons (desktop header and the old bottom
+  // button, both desktop and mobile) are removed; nothing else in this panel
+  // creates notes anymore.
   const panelHTML = isMobile
-    ? `<div id="${panelId}" class="tee-panel-mobile">
+    ? `<div id="${panelId}" class="tee-panel-mobile collapsed">
         <div class="tee-panel-mobile-header">
-          <span style="font-size:12px;font-weight:700;color:var(--text2)">📌 Pinned Notes${hasPinned ? ` (${pinnedForPanel.length})` : ''}</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--text2)"><i class="ti ti-pin" style="font-size:13px"></i>Pinned Notes${hasPinned ? ` (${pinnedForPanel.length})` : ''}</span>
           <button id="${panelBtnId}" class="tee-panel-collapse-btn" onclick="(function(){
             const p=document.getElementById('${panelId}');
             const b=document.getElementById('${panelBtnId}');
             const open=p.classList.toggle('collapsed');
             b.textContent=open?'▾':'▴';
-          })()">▴</button>
+          })()">▾</button>
         </div>
         <div class="tee-panel-mobile-body">
           ${hasPinned ? panelNotesHTML : '<div style="font-size:11px;color:var(--muted);text-align:center;padding:10px 0">No pinned notes yet. Pin a note from the Reminders tab.</div>'}
-          <button class="btn-ghost" style="width:100%;height:28px;font-size:11px;margin-top:4px" onclick="openPinnedNoteModal()">+ Add Pinned Note</button>
         </div>
       </div>`
-    : `<div id="${panelId}" class="tee-panel-side">
-        <div class="tee-panel-side-header">
-          <span style="font-size:12px;font-weight:700;color:var(--text2)">📌 Pinned Notes</span>
-        </div>
-        <div class="tee-panel-side-body">
-          ${hasPinned ? panelNotesHTML : `<div style="text-align:center;padding:20px 8px;color:var(--muted);font-size:11px;line-height:1.6">No pinned notes yet.<br>Pin a note from the<br>Reminders tab.</div>`}
-          <button class="btn-ghost" style="width:100%;height:28px;font-size:11px;margin-top:8px" onclick="openPinnedNoteModal()">+ Add Pinned Note</button>
+    : `<div id="${panelSlotId}" class="tee-panel-side-slot hidden">
+        <div id="${panelId}" class="tee-panel-side">
+          <div class="tee-panel-side-header">
+            <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--text2)"><i class="ti ti-pin" style="font-size:14px"></i>Pinned Notes</span>
+          </div>
+          <div class="tee-panel-side-body">
+            ${hasPinned ? panelNotesHTML : `<div style="text-align:center;padding:20px 8px;color:var(--muted);font-size:11px;line-height:1.6">No pinned notes yet.<br>Pin a note from the<br>Reminders tab.</div>`}
+          </div>
         </div>
       </div>`;
 
-  // 📌 toggle: desktop → hide/show side panel; mobile → expand/collapse bottom strip
-  const pinnedToggleBtn = `<button id="${isMobile ? 'tee-panel-toggle-hdr' : panelBtnId}" class="tee-pinned-toggle-btn${!isMobile && !hasPinned ? '' : ' active'}" title="Toggle pinned notes"
-      onclick="(function(){
-        ${isMobile
-          ? `const p=document.getElementById('${panelId}');const b=document.getElementById('${panelBtnId}');const hb=document.getElementById('tee-panel-toggle-hdr');const open=p.classList.toggle('collapsed');b.textContent=open?'▾':'▴';hb.classList.toggle('active',!open);`
-          : `const p=document.getElementById('${panelId}');const b=document.getElementById('${panelBtnId}');const hidden=p.classList.toggle('hidden');b.classList.toggle('active',!hidden);const wrap=document.querySelector('.tee-modal-with-panel');if(wrap)wrap.classList.toggle('panel-hidden',hidden);`
-        }
-      })()">📌</button>`;
+  // P4-R003c-v7: desktop-only vertical edge handle — pin icon, vertical "Pinned
+  // Notes (N)" label (count merged into the text, no separate floating badge),
+  // and a directional solid-triangle arrow (▶ closed / ◀ open — plain >/< are
+  // no longer used), all inside one pill (CSS: .tee-panel-handle-slot /
+  // .tee-panel-handle). Toggle logic targets ${panelSlotId} and never touches
+  // .tee-modal-with-panel's class list (no .panel-hidden — see CSS comment
+  // above). Mobile is unchanged apart from starting collapsed — its own
+  // self-contained .tee-panel-mobile-header collapse button (panelBtnId)
+  // still works exactly as before.
+  const desktopPanelHandle = isMobile ? '' : `<div class="tee-panel-handle-slot">
+      <button id="${handleId}" class="tee-panel-handle" title="Pinned Notes — click to open/close"
+        onclick="(function(){
+          const s=document.getElementById('${panelSlotId}');const b=document.getElementById('${handleId}');const a=document.getElementById('${handleArrowId}');const hidden=s.classList.toggle('hidden');b.classList.toggle('active',!hidden);if(a)a.textContent=hidden?'▶':'◀';
+        })()">
+        <i class="ti ti-pin" style="font-size:14px"></i><span class="tee-panel-handle-label">Pinned Notes${hasPinned ? ` (${pinnedForPanel.length})` : ''}</span><span class="tee-panel-handle-arrow" id="${handleArrowId}">▶</span>
+      </button>
+    </div>`;
 
+  // P4-R003c-v5: header (title + close) is now a sibling of the two-column body,
+  // both wrapped in .tee-modal-shell — NOT nested inside .tee-modal-form. This
+  // means opening/closing the pinned panel (which only affects the body row)
+  // can never visually shift or feel "owned by" the form column. The body
+  // wrapper class differs by viewport: desktop uses .tee-modal-with-panel (the
+  // flex row owning the handle/panel slots), mobile uses .tee-modal-body-mobile
+  // (a single scrollable region holding the form + inline accordion together,
+  // since mobile pinned notes intentionally scroll as part of the body).
   openModal(`
-    <div class="${!isMobile ? 'tee-modal-with-panel' : ''}">
-      <div class="tee-modal-form">
-        <div class="modal-title">
-          ${isNew ? 'New Item' : `Edit <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">${id}</span>`}
-          <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
-            ${pinnedToggleBtn}
-            ${_modalCloseBtn()}
+    <div class="tee-modal-shell">
+      <div class="tee-modal-header modal-title">
+        <span id="tee-modal-header-title">${headerTitle}</span>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+          ${_modalCloseBtn()}
+        </div>
+      </div>
+      <div class="${!isMobile ? 'tee-modal-with-panel' : 'tee-modal-body-mobile'}">
+        <div class="tee-modal-form">
+          <div class="tee-modal-form-scroll">
+            ${hiddenFields}
+            ${titleField}
+            <div class="tee-identity-row">
+              ${typeTrigger}
+              <div id="tee-type-fields-identity" class="tee-identity-subrow">${identityFields}</div>
+            </div>
+
+            <div class="tee-section-header">Details</div>
+            <div class="tee-field-group">
+              ${descriptionField}
+              <div id="tee-type-fields-details-bottom">${detailsBottomFields}</div>
+            </div>
+
+            <div class="tee-section-header">Assign</div>
+            <div class="tee-field-group">
+              <div id="tee-type-fields-assign">${assignFields}</div>
+            </div>
+
+            <div class="tee-section-header">Context</div>
+            <div class="tee-field-group">
+              <div id="tee-type-fields-context">${contextFields}</div>
+              <div class="tee-compact-pair">
+                ${categoryField}
+                ${tagsInputField}
+              </div>
+              ${tagsChipsRow}
+              ${notesField}
+            </div>
+            <div class="tee-links-spacer" aria-hidden="true"></div>
+
+            <div class="tee-section-header">Execution</div>
+            <div class="tee-field-group">
+              ${subtasksField}
+            </div>
+          </div>
+
+          <div class="tee-modal-footer">
+            <div>${!isNew ? `<button class="btn-danger" onclick="deleteTEEItem('${id}')">Delete</button>` : ''}</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn-ghost" onclick="popNav()">Cancel</button>
+              <button class="btn-primary" onclick="saveTEEModal('${id}','${type}')">Save</button>
+            </div>
           </div>
         </div>
-        ${hiddenFields}
-        <div class="tee-type-tabs">${typeTabs}</div>
-        <div id="tee-type-fields">${taskFields}${eventFields}${entryFields}</div>
-        ${sharedFields}
-        ${!isNew ? `<div style="margin-bottom:12px">
-          <button class="btn-ghost" style="color:var(--red);border-color:rgba(248,113,113,0.3)" onclick="deleteTEEItem('${id}')">Delete</button>
-        </div>` : ''}
-        <div class="modal-actions">
-          <button class="btn-ghost" onclick="popNav()">Cancel</button>
-          <button class="btn-primary" onclick="saveTEEModal('${id}','${type}')">Save</button>
+        ${desktopPanelHandle}
+        ${panelHTML}
       </div>
-      ${panelHTML}
     </div>`);
 }
 
@@ -8273,6 +9768,7 @@ function saveTEEModal(existingId, type) {
   const title = document.getElementById('tee-title')?.value.trim();
   if (!title) { toast('Title is required','error'); return; }
   const g = id => document.getElementById(id)?.value || '';
+  const existing = existingId ? STATE.items.find(i => i.id === existingId) : null;
 
   // Start with a clean slate — all fields empty, then populate only what's relevant
   const base = {
@@ -8308,14 +9804,35 @@ function saveTEEModal(existingId, type) {
 
   if (type === 'task') {
     const _stRaw = g('tee-status') || 'Backlog';
-    if (_stRaw === 'Completed' && (!existing || parseStatus(existing.status).state !== 'Completed')) {
-      const _sn=new Date(); const _sts=_sn.getFullYear()+'-'+String(_sn.getMonth()+1).padStart(2,'0')+'-'+String(_sn.getDate()).padStart(2,'0')+' '+String(_sn.getHours()).padStart(2,'0')+':'+String(_sn.getMinutes()).padStart(2,'0');
-      base.status = 'Completed|'+_sts;
+    if (_stRaw === 'Completed') {
+      if (!existing || parseStatus(existing.status).state !== 'Completed') {
+        const _sn=new Date(); const _sts=_sn.getFullYear()+'-'+String(_sn.getMonth()+1).padStart(2,'0')+'-'+String(_sn.getDate()).padStart(2,'0')+' '+String(_sn.getHours()).padStart(2,'0')+':'+String(_sn.getMinutes()).padStart(2,'0');
+        base.status = 'Completed|'+_sts;
+      } else { base.status = existing.status; }
     } else { base.status = _stRaw; }
     base.priority  = g('tee-priority')  || 'Medium';
     // Build assignees string from lead + contributors chip selections
     const lead = g('tee-lead') || '';
-    const contributors = getChipSelections('tee-contributors').filter(v => v !== lead);
+    const allSelectedPeople = getChipSelections('tee-contributors');
+    // P4-R009c: block Save only when people are selected but no Lead has
+    // been chosen (owner decision 3) — a Task with zero selected people may
+    // still save with no Lead (owner decision 2), and no one is ever
+    // auto-promoted to Lead on Save (owner decision 1). This check must run
+    // before any STATE.items mutation below, which it does — the earliest
+    // STATE.items write in this function happens after the entire type
+    // branch, so returning here leaves STATE untouched, same as the
+    // existing title-required check at the top of this function.
+    if (allSelectedPeople.length > 0 && !lead) {
+      toast('Choose a Lead for this task, or remove all selected people.', 'error');
+      return;
+    }
+    // allSelectedPeople already includes the Lead's own name whenever a
+    // Lead is set (Selected is the single source of truth for everyone
+    // involved, owner decision 4/13 — see _buildTEEAssignFields) — this
+    // filter is what keeps buildAssigneesStr's slot-0 Lead from also being
+    // duplicated in the rest of the list (owner decision / item E), exactly
+    // the same safety net this line already provided before P4-R009c.
+    const contributors = allSelectedPeople.filter(v => v !== lead);
     base.assignees = buildAssigneesStr(lead, contributors);
     base.dept      = g('tee-dept')      || '';
     base.startDate = g('tee-startDate') || '';
@@ -8325,24 +9842,47 @@ function saveTEEModal(existingId, type) {
     base.date      = g('tee-date')      || '';
     base.time      = g('tee-time')      || '';
     base.endTime   = g('tee-endTime')   || '';
-    base.color     = g('tee-color')     || '#22D3EE';
+    // P4-R011b: Event Color removed from Add/Edit (discovery basis
+    // P4-D021a) — #tee-color no longer exists in the DOM, so there is
+    // nothing to read here. base.color keeps the empty-string default
+    // already set at the top of this function (the `base` object literal);
+    // no replacement default color is introduced. saveTEE/saveArchiveItem/
+    // _teeRowToItem's Color column handling is intentionally left
+    // untouched — existing saved Color values are preserved, not migrated
+    // or deleted; full column retirement is out of scope for this
+    // checkpoint.
     base.priority  = g('tee-priority')  || 'Medium';
+    // P4-R011a: Context standardization — Event now renders tee-dept/
+    // tee-project (see _buildTEEContextFields), so read them here the same
+    // way Task already does. No Apps Script/schema change — the Department/
+    // Project columns already exist and saveTEE/saveArchiveItem already
+    // write them for other types.
+    base.dept      = g('tee-dept')      || '';
+    base.project   = g('tee-project')   || '';
     base.assignees = getChipSelections('tee-contributors').join('|');
     const _evRaw = g('tee-status') || 'Open';
-    if (_evRaw === 'Done' && (!existing || parseStatus(existing.status).state !== 'Done')) {
-      const _evn=new Date(), _evts=_evn.getFullYear()+'-'+String(_evn.getMonth()+1).padStart(2,'0')+'-'+String(_evn.getDate()).padStart(2,'0')+' '+String(_evn.getHours()).padStart(2,'0')+':'+String(_evn.getMinutes()).padStart(2,'0');
-      base.status = 'Done|'+_evts;
+    if (_evRaw === 'Done') {
+      if (!existing || parseStatus(existing.status).state !== 'Done') {
+        const _evn=new Date(), _evts=_evn.getFullYear()+'-'+String(_evn.getMonth()+1).padStart(2,'0')+'-'+String(_evn.getDate()).padStart(2,'0')+' '+String(_evn.getHours()).padStart(2,'0')+':'+String(_evn.getMinutes()).padStart(2,'0');
+        base.status = 'Done|'+_evts;
+      } else { base.status = existing.status; }
     } else { base.status = _evRaw; }
   } else { // entry
     base.date      = g('tee-date')      || '';
     base.time      = g('tee-time')      || '';
     base.priority  = g('tee-priority')  || 'Medium';
     base.project   = g('tee-project')   || '';
+    // P4-R011a: Context standardization — Entry now also renders tee-dept
+    // alongside its existing tee-project (see _buildTEEContextFields);
+    // read it the same way Task already does.
+    base.dept      = g('tee-dept')      || '';
     base.assignees = getChipSelections('tee-contributors').join('|');
     const _enRaw = g('tee-status') || 'Open';
-    if (_enRaw === 'Done' && (!existing || parseStatus(existing.status).state !== 'Done')) {
-      const _enn=new Date(); const _ents=_enn.getFullYear()+'-'+String(_enn.getMonth()+1).padStart(2,'0')+'-'+String(_enn.getDate()).padStart(2,'0')+' '+String(_enn.getHours()).padStart(2,'0')+':'+String(_enn.getMinutes()).padStart(2,'0');
-      base.status = 'Done|'+_ents;
+    if (_enRaw === 'Done') {
+      if (!existing || parseStatus(existing.status).state !== 'Done') {
+        const _enn=new Date(); const _ents=_enn.getFullYear()+'-'+String(_enn.getMonth()+1).padStart(2,'0')+'-'+String(_enn.getDate()).padStart(2,'0')+' '+String(_enn.getHours()).padStart(2,'0')+':'+String(_enn.getMinutes()).padStart(2,'0');
+        base.status = 'Done|'+_ents;
+      } else { base.status = existing.status; }
     } else { base.status = _enRaw; }
   }
 
@@ -8351,7 +9891,7 @@ function saveTEEModal(existingId, type) {
   } else {
     STATE.items.push(base);
   }
-  closeModal();
+  clearNav();
   renderAll();
   saveTEE(base)
     .then(() => { toast(existingId ? 'Updated' : 'Created'); triggerSync(); })
@@ -8381,7 +9921,10 @@ function quickAddPersonFromModal() {
   const currentItemId   = document.getElementById('tee-hidden-id')?.value || '';
   const currentDate     = document.getElementById('tee-hidden-date')?.value || '';
   const currentStatus   = document.getElementById('tee-hidden-status')?.value || '';
-  const currentType     = document.querySelector('.tee-type-btn.active')?.textContent?.trim().toLowerCase().replace(/[^a-z]/g,'') || 'task';
+  // P4-R008b: Type is now a pill dropdown trigger, not .tee-type-btn tabs — read
+  // the value-bearing #tee-current-type holder (kept in sync by switchTEEType)
+  // instead of the old .tee-type-btn.active textContent parse.
+  const currentType     = document.getElementById('tee-current-type')?.value || 'task';
   // Carry shared fields
   const carried = {
     title:    document.getElementById('tee-title')?.value || '',
@@ -8398,6 +9941,14 @@ function quickAddPersonFromModal() {
     startDate: document.getElementById('tee-startDate')?.value || '',
     dueDate:   document.getElementById('tee-dueDate')?.value || '',
     project:   document.getElementById('tee-project')?.value || '',
+    // P4-R009a: capture the in-progress people selection so quick-add can
+    // restore it exactly on Cancel, or preserve+extend it on Save, instead of
+    // losing it (see _restoreTEEModal / _saveQuickPerson). `lead` is Task-only
+    // — harmless empty string for Event/Entry, since only Task renders
+    // #tee-lead. `people` covers Contributors (Task) and Participants
+    // (Event/Entry) alike, since both use the same #tee-contributors chip-select.
+    lead:      document.getElementById('tee-lead')?.value || '',
+    people:    getChipSelections('tee-contributors'),
   };
 
   const COLORS = ['#285C70','#34D399','#FB923C','#C084FC','#F87171','#22D3EE','#FBBF24'];
@@ -8433,7 +9984,9 @@ function quickAddPersonFromModal() {
   window._qapCarriedTask = carriedTask;
 }
 
-// Save new person and restore the TEE modal with them pre-selected as lead
+// Save new person, restore prior people selections, and add the new person
+// into the current item's Contributors (Task) / Participants (Event/Entry) —
+// P4-R009a: never into Lead (owner decision, P4-D018 §K / OD-02).
 function _saveQuickPerson(itemId, type, defaultDate, defaultStatus) {
   const name  = document.getElementById('qap-name')?.value.trim();
   if (!name) { toast('Name is required','error'); return; }
@@ -8452,15 +10005,30 @@ function _saveQuickPerson(itemId, type, defaultDate, defaultStatus) {
   _renderTEEModal(existingItem || null, type, defaultDate, defaultStatus, { ...carried });
 
   setTimeout(() => {
-    if (ct.status)    { const el = document.getElementById('tee-status');    if (el) el.value = getDisplayStatus(ct); }
-    if (ct.priority)  { const el = document.getElementById('tee-priority');  if (el) el.value = ct.priority; }
+    // P4-R006-fix1: ct (carriedTask) is a plain carried-value bag with no `.type`
+    // property — passing it to getDisplayStatus(ct) was a bug: getDisplayStatus
+    // checks `item.type === 'task'`, which is always false for `ct`, so it fell
+    // through to the Event/Entry branch and returned 'Open' regardless of the
+    // Task's actual carried status. `ct.status` is already the correct bare
+    // identifier (read straight from #tee-status before quick-add opened) — just
+    // normalize it for the current type and use it directly; no getDisplayStatus.
+    if (ct.status)    { const el = document.getElementById('tee-status');    if (el) { el.value = _normalizeTEEStatusForType(type, ct.status); _syncTEEStatusTrigger(el.value); } }
+    if (ct.priority)  { const el = document.getElementById('tee-priority');  if (el) { el.value = ct.priority; _syncTEEPriorityTrigger(el.value); } }
     if (ct.dept)      { const el = document.getElementById('tee-dept');      if (el) el.value = ct.dept; }
     if (ct.startDate) { const el = document.getElementById('tee-startDate'); if (el) el.value = ct.startDate; }
     if (ct.dueDate)   { const el = document.getElementById('tee-dueDate');   if (el) el.value = ct.dueDate; }
     if (ct.project)   { const el = document.getElementById('tee-project');   if (el) el.value = ct.project; }
-    // Pre-select new person as lead
-    const leadSel = document.getElementById('tee-lead');
-    if (leadSel) leadSel.value = name;
+    // P4-R009a: restore the pre-quick-add Lead (Task only) exactly as it was —
+    // never the new person — then restore the prior Contributors/Participants
+    // selection and add the newly created person into it. A Set naturally
+    // avoids a duplicate entry if the new person were somehow already present.
+    const leadEl = document.getElementById('tee-lead');
+    if (leadEl) leadEl.value = ct.lead || '';
+    const people = new Set(ct.people || []);
+    people.add(name);
+    document.querySelectorAll('#tee-contributors .chip-option').forEach(chip => {
+      chip.classList.toggle('selected', people.has(chip.dataset.val));
+    });
   }, 50);
 
   window._qapCarried = null;
@@ -8474,21 +10042,26 @@ function _restoreTEEModal(itemId, type, defaultDate, defaultStatus) {
   _renderTEEModal(existingItem, type || 'task', defaultDate, defaultStatus, carried);
   setTimeout(() => {
     const ct = window._qapCarriedTask || {};
-    if (ct.status)    { const el = document.getElementById('tee-status');    if (el) el.value = getDisplayStatus(ct); }
-    if (ct.priority)  { const el = document.getElementById('tee-priority');  if (el) el.value = ct.priority; }
+    // P4-R006-fix1: see _saveQuickPerson's comment above — ct has no `.type`, so
+    // getDisplayStatus(ct) always misread it as Event/Entry and returned 'Open'.
+    // Use ct.status (already a bare identifier) directly, normalized for the type.
+    if (ct.status)    { const el = document.getElementById('tee-status');    if (el) { el.value = _normalizeTEEStatusForType(type || 'task', ct.status); _syncTEEStatusTrigger(el.value); } }
+    if (ct.priority)  { const el = document.getElementById('tee-priority');  if (el) { el.value = ct.priority; _syncTEEPriorityTrigger(el.value); } }
     if (ct.dept)      { const el = document.getElementById('tee-dept');      if (el) el.value = ct.dept; }
     if (ct.startDate) { const el = document.getElementById('tee-startDate'); if (el) el.value = ct.startDate; }
     if (ct.dueDate)   { const el = document.getElementById('tee-dueDate');   if (el) el.value = ct.dueDate; }
     if (ct.project)   { const el = document.getElementById('tee-project');   if (el) el.value = ct.project; }
-    if (ct.assignees) {
-      const { lead, contributors } = parseAssignees(ct.assignees);
-      const leadEl = document.getElementById('tee-lead');
-      if (leadEl) leadEl.value = lead;
-      // Restore chip selections
-      document.querySelectorAll('#tee-contributors .chip-option').forEach(chip => {
-        chip.classList.toggle('selected', contributors.includes(chip.dataset.val));
-      });
-    }
+    // P4-R009a: restore the exact pre-quick-add Lead/Contributors/Participants
+    // selection — no person is added on Cancel. This replaces a previously dead
+    // `if (ct.assignees)` block: quickAddPersonFromModal() never actually set
+    // `ct.assignees`, so that branch could never fire (see P4-D018 §G). `ct.lead`
+    // and `ct.people` are the real captured values now.
+    const leadEl = document.getElementById('tee-lead');
+    if (leadEl) leadEl.value = ct.lead || '';
+    const people = new Set(ct.people || []);
+    document.querySelectorAll('#tee-contributors .chip-option').forEach(chip => {
+      chip.classList.toggle('selected', people.has(chip.dataset.val));
+    });
     window._qapCarried = null;
     window._qapCarriedTask = null;
   }, 50);
