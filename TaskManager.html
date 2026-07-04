@@ -1700,6 +1700,48 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .detail-value { color: var(--text); line-height: 1.4; }
 .detail-mono  { font-family: var(--mono); font-size: 12px; }
 
+/* ── TEE Detail Links Section (P4-R012b, refined P4-R012b-fix1) ───────────
+   Discovery basis: P4-D022. Dedicated .tee-detail-link-* namespace only —
+   not reusing Directory/Folders' .dir-card-action-link (untouched, unrelated
+   feature) or the Add/Edit .tee-link-* editor classes (different surface —
+   this one is read-only display).
+   fix1: corrected per owner review — the initial P4-R012b pass rendered
+   one card per link plus a visible muted URL/path line, which read as
+   noisy. Now there is a single outer .tee-detail-links card for the whole
+   section; inside it, .tee-detail-link-list wraps one compact pill
+   (.tee-detail-link-item) per link. A link's name is itself the clickable
+   action (icon + name, no separate "Open" label) — .tee-detail-link-action
+   is reused unchanged from the initial pass for both the name/Open pill
+   and the Copy Path pill, since both are the same small pill-button style.
+   The raw URL/path is no longer shown as a visible line — it is preserved
+   only internally, via each pill's title attribute, the href, and Copy
+   Path — satisfying "keep raw URL/path internally for href, title, and
+   copy behavior" without a persistently visible line. */
+.tee-detail-links { margin: 14px 0 4px; }
+.tee-detail-link-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tee-detail-link-item {
+  display: inline-flex; align-items: center; gap: 4px;
+  max-width: 100%; min-width: 0;
+}
+.tee-detail-link-action {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; font-family: var(--font);
+  color: var(--accent2); background: var(--glass2);
+  border: 1px solid var(--border2); border-radius: 20px;
+  padding: 3px 9px; cursor: pointer; text-decoration: none;
+  max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: background 0.15s, color 0.15s;
+}
+.tee-detail-link-action:hover { background: var(--glassh); color: var(--text); }
+.tee-detail-link-muted { font-size: 11px; color: var(--muted); font-style: italic; }
+.tee-detail-link-inert {
+  font-size: 12px; color: var(--text2); padding: 3px 2px;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+}
+@media (max-width: 767px) {
+  .tee-detail-link-action { max-width: 100%; }
+}
+
 /* TEE unified modal type tabs */
 /* Chip-toggle multi-select — mobile-friendly tap-to-select contributors */
 .chip-select {
@@ -2084,6 +2126,52 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .tee-section-header:first-of-type { margin-top: 4px; }
 /* Reserved spacing in the Context section for a future Links/related-URLs row — no control rendered yet */
 .tee-links-spacer { height: 4px; }
+/* P4-R012a note: .tee-links-spacer's own markup usage was replaced by the
+   real Links editor below it in source (Context, after Notes, before
+   Execution/Subtasks — see _buildTEELinksEditor/_renderTEEModal) — this
+   rule is left in place, unused, per "no opportunistic cleanup" (it has no
+   other caller and is harmless to leave). */
+
+/* ── TEE Links Editor (P4-R012a) ──────────────────────────────────────────
+   Discovery basis: P4-D022. Dedicated .tee-link-* namespace only —
+   deliberately not reusing .subtask-* (Subtasks, a different field/shape)
+   or .dir-card-action-link (Directory/Folders' existing Open-link pattern,
+   an unrelated feature untouched by this checkpoint). Desktop: Name ~30–40%
+   (flex-basis on a 100%-total row), URL/Path takes the remaining flexible
+   space, remove button fixed small width — long URLs scroll/truncate
+   inside their own input via native text-input behavior rather than
+   overflowing the row or the modal. Add/Edit only in this checkpoint — no
+   clickable/open behavior, no TEE Detail display (P4-R012b). */
+.tee-links-editor { display: flex; flex-direction: column; gap: 6px; }
+.tee-link-row { display: flex; align-items: center; gap: 6px; }
+.tee-link-name { flex: 0 1 36%; min-width: 0; }
+.tee-link-url  { flex: 1 1 auto; min-width: 0; }
+.tee-link-remove {
+  flex-shrink: 0; width: 24px; height: 24px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer;
+  font-size: 14px; font-weight: 700; line-height: 1; color: var(--muted);
+  border-radius: 6px; transition: background 0.15s, color 0.15s;
+}
+.tee-link-remove:hover { background: var(--glass2); color: var(--text); }
+.tee-link-add-btn {
+  flex-shrink: 0; padding: 4px 10px; border-radius: 8px;
+  border: 1px solid var(--border2); background: var(--glass2);
+  color: var(--text2); font-size: 11px; font-family: var(--font); cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.tee-link-add-btn:hover { background: var(--glassh); color: var(--text); }
+.tee-link-add-btn:disabled { opacity: 0.5; cursor: default; }
+.tee-link-limit-note { font-size: 10px; color: var(--muted); }
+/* Mobile: Name gets its own full-width line, URL + remove share the line
+   below it — avoids squeezing a Name/URL/remove three-up row into a very
+   narrow viewport while still keeping each link to two visual lines
+   rather than three. */
+@media (max-width: 767px) {
+  .tee-link-row { flex-wrap: wrap; }
+  .tee-link-name { flex: 1 1 100%; }
+  .tee-link-url  { flex: 1 1 auto; }
+}
 
 /* ── TEE Add/Edit grouped form foundation (P4-R003f-v2) ─────────────────── */
 .tee-field-group {
@@ -3905,6 +3993,11 @@ async function saveTEE(item) {
     'Color':        (isEvent || isEntry) ? item.color  : '',
     'Recurrence':   item.recurrence  || 'none',
     'Subtasks':     item.subtasks?.length ? JSON.stringify(item.subtasks) : '',
+    // P4-R012a: TEE Links (discovery basis P4-D022) — same write shape as
+    // Subtasks; Links column already added to both sheets manually by the
+    // owner (out-of-band, precondition for this checkpoint), header-driven
+    // Apps Script picks up the new key automatically, no Apps Script change.
+    'Links':        item.links?.length ? JSON.stringify(item.links) : '',
   });
 }
 
@@ -3940,6 +4033,28 @@ function _teeRowToItem(r) {
     color:       r['Color']        || '',
     recurrence:  r['Recurrence']   || 'none',
     subtasks:    (() => { try { const raw = r['Subtasks']||''; return raw ? JSON.parse(raw) : []; } catch { return []; } })(),
+    // P4-R012a: TEE Links (discovery basis P4-D022) — same shape as Subtasks:
+    // a JSON-stringified array in one cell, safely parsed with a try/catch
+    // empty-array fallback so old rows with no Links column, or a blank
+    // Links cell, never throw and simply resolve to []. Also normalizes each
+    // entry to a plain { name, url } string pair (guards against a
+    // malformed/partial object surviving from hand-edited sheet data) and
+    // drops any entry with a blank url — a link with no url is not a link.
+    // Name is preserved as-is (including blank) since Name is optional.
+    links: (() => {
+      try {
+        const raw = r['Links'] || '';
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+          .map(l => ({
+            name: (l && l.name != null) ? String(l.name) : '',
+            url:  (l && l.url  != null) ? String(l.url)  : '',
+          }))
+          .filter(l => l.url);
+      } catch { return []; }
+    })(),
     archivedDate: r['Archived Date'] || '',
     archivedBy:   r['Archived By']   || '',
   };
@@ -4002,6 +4117,10 @@ async function saveArchiveItem(item, archivedBy = 'auto') {
     'Color':        (isEvent || isEntry) ? item.color  : '',
     'Recurrence':   item.recurrence  || 'none',
     'Subtasks':     item.subtasks?.length ? JSON.stringify(item.subtasks) : '',
+    // P4-R012a: mirrors the same Links write shape added to saveTEE — see
+    // that function's comment for rationale. Preserved before archive
+    // metadata, same relative position as the active sheet.
+    'Links':        item.links?.length ? JSON.stringify(item.links) : '',
     'Archived Date': fmtDate(new Date()),
     'Archived By':   archivedBy,
   });
@@ -4548,6 +4667,195 @@ function _buildDetailTagRow(tags, reopenExpr) {
   }).join(' ');
   return `<div class="detail-row"><span class="detail-label">Tags</span><span class="detail-value" style="display:flex;flex-wrap:wrap;gap:4px">${tagBtns}</span></div>`;
 }
+
+// ── TEE Detail Links Display + Open/Copy (P4-R012b) ─────────────────────
+// Discovery basis: P4-D022. Read-only display layer over the item.links
+// data model + Add/Edit editor already shipped in P4-R012a — does not
+// change storage format, save/load behavior, or the Add/Edit editor
+// itself. Dedicated .tee-detail-link-* namespace and dedicated helper
+// functions only — not reusing Directory/Folders' .dir-card-action-link
+// or the Add/Edit .tee-link-* editor classes (different surface, this one
+// is read-only).
+
+// Narrow escaping helpers scoped to this feature only — not an app-wide
+// escaping refactor. _escapeTEEText is safe for HTML text-node content;
+// _escapeTEEAttr additionally escapes quote characters so the same value
+// can be safely placed inside an HTML attribute (href, title, data-*).
+function _escapeTEEText(str) {
+  return (str == null ? '' : String(str)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _escapeTEEAttr(str) {
+  return _escapeTEEText(str).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Classifies a raw Links URL/path string into a safe-to-render shape.
+// Never mutates the stored item.links value and never saves anything —
+// display/open/copy only. Preserves the original raw value for display
+// and Copy Path; only `href` (used for the Open action) is ever derived/
+// normalized. Windows-drive-letter and Mac/Linux-absolute-path patterns
+// are checked BEFORE generic scheme detection so a single drive letter
+// (e.g. "D:") is never mistaken for a URI scheme. Allowed clickable
+// schemes are an allow-list (http/https/file) — anything else explicit
+// (javascript:, data:, vbscript:, or any other scheme) is classified
+// 'unsafe' and never gets a non-empty href.
+function _classifyTEELinkTarget(rawUrl) {
+  const raw = (rawUrl == null ? '' : String(rawUrl)).trim();
+  if (!raw) return { kind:'unknown', raw:'', href:'', canOpen:false, canCopy:false, reason:'blank' };
+
+  // Windows local path — checked first so "D:" is never read as a scheme.
+  if (/^[A-Za-z]:[\\\/]/.test(raw)) {
+    const drive = raw.slice(0, 2);
+    const rest  = raw.slice(2).replace(/\\/g,'/').split('/').filter(Boolean).map(encodeURIComponent).join('/');
+    return { kind:'local', raw, href:'file:///' + drive + '/' + rest, canOpen:true, canCopy:true };
+  }
+  // Mac/Linux absolute path — checked before scheme detection for the same reason.
+  if (/^\//.test(raw)) {
+    const rest = raw.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+    return { kind:'local', raw, href:'file:///' + rest, canOpen:true, canCopy:true };
+  }
+
+  // Explicit scheme (2+ letters — a single drive letter can never match this).
+  const schemeMatch = raw.match(/^([a-zA-Z][a-zA-Z0-9+.-]{1,}):/);
+  const scheme = schemeMatch ? schemeMatch[1].toLowerCase() : '';
+  if (scheme) {
+    const ALLOWED = ['http', 'https', 'file'];
+    if (!ALLOWED.includes(scheme)) {
+      return { kind:'unsafe', raw, href:'', canOpen:false, canCopy:true, reason:'unsafe scheme: ' + scheme };
+    }
+    return { kind: scheme === 'file' ? 'file' : 'web', raw, href: raw, canOpen:true, canCopy:true };
+  }
+
+  // No scheme, not a recognized local path — domain shorthand (example.com, www.example.com/path).
+  if (/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+(\/\S*)?$/i.test(raw)) {
+    return { kind:'web', raw, href:'https://' + raw, canOpen:true, canCopy:true };
+  }
+
+  return { kind:'unknown', raw, href:'', canOpen:false, canCopy:true, reason:'unrecognized format' };
+}
+
+// Fallback display name when a link's Name is blank: hostname for web
+// targets, last path segment for file/local targets, else the literal
+// string "Link".
+function _teeLinkFallbackName(target) {
+  if (target.kind === 'web') {
+    try { return new URL(target.href).hostname || 'Link'; } catch { return 'Link'; }
+  }
+  if (target.kind === 'file' || target.kind === 'local') {
+    const parts = target.raw.split(/[\\\/]/).filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : 'Link';
+  }
+  return 'Link';
+}
+
+// Builds the TEE Detail Links section. Accepts item.links, normalizes to
+// an array safely, filters out entries with a blank url, and returns ''
+// when there are no valid rows (so a blank/missing item.links renders
+// nothing, per spec). Never shows raw JSON or blank rows. Web links get an
+// Open action (target="_blank" rel="noopener noreferrer"); file/local
+// links get both Open (best-effort) and Copy Path; unsafe schemes render
+// inertly with a small muted note and no Open action; unknown/unparseable
+// values render as plain text with no action at all.
+// P4-R012b-fix1: Correction over the initial P4-R012b pass, per owner
+// review — the original one-card-per-link layout with a visible muted
+// URL/path line underneath each name read as noisy. This pass replaces it
+// with a single outer Links card containing one compact, wrapping pill per
+// link; the link's display name IS the clickable action (icon + name, no
+// separate generic "Open" label), and the raw URL/path is no longer shown
+// as a visible line — it is still preserved internally for href, the
+// title tooltip, and Copy Path, exactly as before. Classification logic
+// (_classifyTEELinkTarget), the fallback-name rules, Open safety
+// (target="_blank" rel="noopener noreferrer", allow-listed schemes only),
+// and Copy Path behavior (copyTEELinkPath) are all unchanged — only this
+// function's output markup/CSS changed.
+function _buildTEELinksDetailSection(links) {
+  const valid = (Array.isArray(links) ? links : [])
+    .map(l => ({ name: (l && l.name != null) ? String(l.name) : '', url: (l && l.url != null) ? String(l.url).trim() : '' }))
+    .filter(l => l.url);
+  if (!valid.length) return '';
+
+  const items = valid.map(l => {
+    const target = _classifyTEELinkTarget(l.url);
+    const displayName = (l.name || '').trim() || _teeLinkFallbackName(target);
+    const safeName = _escapeTEEText(displayName);
+    const safeRawAttr = _escapeTEEAttr(target.raw);
+
+    if (target.kind === 'web') {
+      const safeHref = _escapeTEEAttr(target.href);
+      return `<span class="tee-detail-link-item">`
+        + `<a class="tee-detail-link-action" href="${safeHref}" target="_blank" rel="noopener noreferrer" title="${safeRawAttr}">`
+        + `<i class="ti ti-external-link"></i> ${safeName}</a>`
+        + `</span>`;
+    }
+    if (target.kind === 'file' || target.kind === 'local') {
+      const safeHref = _escapeTEEAttr(target.href);
+      return `<span class="tee-detail-link-item">`
+        + `<a class="tee-detail-link-action" href="${safeHref}" target="_blank" rel="noopener noreferrer" title="${safeRawAttr} — local file opening may depend on your browser/security settings">`
+        + `<i class="ti ti-external-link"></i> ${safeName}</a>`
+        + `<button type="button" class="tee-detail-link-action" onclick="copyTEELinkPath(this)" data-tee-link-path="${safeRawAttr}" title="Copy Path">`
+        + `<i class="ti ti-copy"></i> Copy Path</button>`
+        + `</span>`;
+    }
+    if (target.kind === 'unsafe') {
+      return `<span class="tee-detail-link-item tee-detail-link-inert" title="${safeRawAttr}">`
+        + `${safeName}<span class="tee-detail-link-muted"> — Blocked unsafe link</span>`
+        + `</span>`;
+    }
+    // 'unknown' kind: inert plain-text name only, no action, no note.
+    return `<span class="tee-detail-link-item tee-detail-link-inert" title="${safeRawAttr}">${safeName}</span>`;
+  }).join('');
+
+  return `
+    <div class="tee-detail-links">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin:14px 0 4px">Links</div>
+      <div class="tee-detail-link-list">${items}</div>
+    </div>`;
+}
+
+// Copies a Links row's original raw value (not the generated file:// href)
+// to the clipboard. Reads the value from the clicked button's own
+// data-tee-link-path attribute (via .dataset) rather than embedding the
+// raw string inside the onclick attribute itself — this avoids having to
+// hand-escape backslashes/quotes for a Windows path inside a JS string
+// literal, which would be fragile. Uses the modern Clipboard API when
+// available, falling back to a temporary offscreen textarea +
+// document.execCommand('copy') otherwise (works for both Windows and Mac
+// path strings either way, since both are just plain text to the
+// clipboard). Fails gracefully — no alert, no thrown error surfaced to
+// the user — if the clipboard is unavailable or permission is denied.
+function copyTEELinkPath(btnEl) {
+  const raw = btnEl?.dataset?.teeLinkPath || '';
+  if (!raw) return;
+  const showCopied = () => {
+    if (!btnEl) return;
+    if (btnEl.dataset.teeLinkOriginalLabel === undefined) {
+      btnEl.dataset.teeLinkOriginalLabel = btnEl.innerHTML;
+    }
+    btnEl.textContent = 'Copied';
+    setTimeout(() => {
+      if (btnEl.isConnected) btnEl.innerHTML = btnEl.dataset.teeLinkOriginalLabel;
+    }, 1200);
+  };
+  const legacyFallback = () => {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = raw;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showCopied();
+    } catch (e) { /* clipboard unavailable/denied — fail silently, no alert */ }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(raw).then(showCopied).catch(legacyFallback);
+  } else {
+    legacyFallback();
+  }
+}
+window.copyTEELinkPath = copyTEELinkPath;
 
 // Extract trailing hashtags from note text — safety net for manually typed tags
 // Reads backwards from end collecting consecutive #word tokens
@@ -8933,6 +9241,8 @@ function openTEEDetail(itemId, _u1, isArchived) {
     ${item.notes ? `<div style="margin:14px 0 4px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">Notes</div>
       <div style="font-size:13px;color:var(--text2);line-height:1.6;padding:10px;background:var(--glass);border:1px solid var(--border);border-radius:10px">${item.notes}</div>` : ''}
 
+    ${_buildTEELinksDetailSection(item.links)}
+
     ${!isArchived ? _buildSubtaskSection(item, false) : (item.subtasks?.length ? '<div class="subtask-section"><div class="subtask-header"><span class="subtask-header-lbl">Subtasks</span><span class="subtask-summary" id="st-hdr-'+item.id+'">' + _subtaskSummary(item.subtasks) + '</span></div><div class="subtask-list">'
         + (item.subtasks||[]).map((s,idx) =>
             '<div class="subtask-row" onclick="toggleSubtask(\''+item.id+'\','+idx+')">'
@@ -9481,6 +9791,118 @@ function _buildTeeTagsChipsRow() {
   return `<div class="tee-tag-chips" id="tee-tags-chips"></div>`;
 }
 
+// ── TEE Links Editor (P4-R012a) ─────────────────────────────────────────
+// Discovery basis: P4-D022. Dedicated .tee-link-* namespace and dedicated
+// helper functions only — deliberately not reusing .subtask-*/
+// _addSubtaskToForm (different field, different data shape) or
+// .dir-card-action-link (Directory/Folders' existing Open-link pattern,
+// an unrelated feature this checkpoint does not touch). Mirrors the
+// Subtasks *pattern* only (shared across all types, dynamic add/remove
+// rows read directly from the DOM at save time, no hidden value-holder) —
+// not its markup or functions. Rendered once, outside the four type-
+// swapped zones (Identity/Details-bottom/Assign/Context), in the same spot
+// the pre-existing .tee-links-spacer placeholder occupied (Context, after
+// Notes, before Execution/Subtasks) — this is what lets switchTEEType skip
+// any carry/restore logic for Links entirely, the same way it already
+// does for Subtasks (see switchTEEType's own comment for the verification
+// that this remains true).
+//
+// Open/Copy actions, dangerous-scheme handling, and TEE Detail display are
+// explicitly out of scope for this checkpoint (P4-D022 stages those as
+// P4-R012b) — no clickable links are rendered here, only plain editable
+// Name/URL text inputs.
+function _buildTEELinksEditor(links) {
+  const rows = (links || []).map((l, idx) => `
+    <div class="tee-link-row" id="tee-link-row-${idx}">
+      <input class="form-input tee-link-name" id="tee-link-name-${idx}" value="${(l.name||'').replace(/"/g,'&quot;')}" placeholder="Name">
+      <input class="form-input tee-link-url" id="tee-link-url-${idx}" value="${(l.url||'').replace(/"/g,'&quot;')}" placeholder="URL / Link / Path">
+      <button type="button" class="tee-link-remove" onclick="document.getElementById('tee-link-row-${idx}').remove();_teeLinksCheckMax();" title="Remove">&times;</button>
+    </div>`).join('');
+  // Deferred to run after openModal() has actually inserted this markup —
+  // same setTimeout(0) convention already used by _buildTeeTagsInputField/
+  // buildPeoplePicker — so the max-10 check measures the real, mounted row
+  // count (relevant when reopening an item that already has 10 links).
+  setTimeout(() => _teeLinksCheckMax(), 0);
+  return `
+    <div class="form-group tee-links-editor">
+      <label class="form-label">Links / URLs</label>
+      <div id="tee-link-list">${rows}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button type="button" id="tee-link-add-btn" class="tee-link-add-btn" onclick="_addTeeLinkRow()">+ Add Link</button>
+        <span class="tee-link-limit-note" id="tee-link-limit-note" style="display:none">Max 10 links</span>
+      </div>
+    </div>`;
+}
+
+// Appends one new, empty, directly-editable link row. Unlike Subtasks'
+// separate staging-input-then-Enter/Add flow, Links has no staging input —
+// "+ Add Link" appends the row itself, immediately editable, per the
+// owner-specified interaction shape ("click + Add Link and a row appears").
+function _addTeeLinkRow() {
+  const list = document.getElementById('tee-link-list');
+  if (!list) return;
+  if (list.children.length >= 10) return; // max 10 — button is also disabled/hidden at this point
+  const idx = list.children.length;
+  const row = document.createElement('div');
+  row.className = 'tee-link-row';
+  row.id = `tee-link-row-${idx}`;
+  const nameInp = document.createElement('input');
+  nameInp.className = 'form-input tee-link-name';
+  nameInp.id = `tee-link-name-${idx}`;
+  nameInp.placeholder = 'Name';
+  const urlInp = document.createElement('input');
+  urlInp.className = 'form-input tee-link-url';
+  urlInp.id = `tee-link-url-${idx}`;
+  urlInp.placeholder = 'URL / Link / Path';
+  const del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'tee-link-remove';
+  del.title = 'Remove';
+  del.innerHTML = '&times;';
+  del.onclick = () => { row.remove(); _teeLinksCheckMax(); };
+  row.appendChild(nameInp);
+  row.appendChild(urlInp);
+  row.appendChild(del);
+  list.appendChild(row);
+  _teeLinksCheckMax();
+  nameInp.focus();
+}
+
+// Enforces the max-10 link cap as a UI-level guard only (per P4-D022 §6/§7
+// — a soft cap, not a save-time hard block): disables/hides "+ Add Link"
+// once 10 rows exist, and shows a calm inline note while at the cap.
+function _teeLinksCheckMax() {
+  const list = document.getElementById('tee-link-list');
+  const btn  = document.getElementById('tee-link-add-btn');
+  const note = document.getElementById('tee-link-limit-note');
+  if (!list || !btn) return;
+  const atMax = list.children.length >= 10;
+  btn.disabled = atMax;
+  btn.style.display = atMax ? 'none' : '';
+  if (note) note.style.display = atMax ? '' : 'none';
+}
+
+// Reads the current Links editor rows directly from the DOM into a plain
+// { name, url } array — shared by saveTEEModal (final save read) and
+// quickAddPersonFromModal (in-progress capture before the quick-add
+// mini-form replaces the modal's DOM), so both use identical row-reading
+// logic instead of duplicating it. Reads by class (.tee-link-name/
+// .tee-link-url), not by reconstructing an id from iteration index — see
+// saveTEEModal's own comment for why. Returns null (not []) when the
+// editor isn't currently mounted, so callers can distinguish "no editor
+// present" from "editor present but genuinely empty" and choose the
+// correct fallback themselves. A row is kept only if it has a URL/Path;
+// blank Name is allowed (Name is optional). Outer whitespace is trimmed.
+function _getTeeLinksFromDOM() {
+  const list = document.getElementById('tee-link-list');
+  if (!list) return null;
+  return Array.from(list.querySelectorAll('.tee-link-row')).map(row => {
+    const name = (row.querySelector('.tee-link-name')?.value || '').trim();
+    const url  = (row.querySelector('.tee-link-url')?.value  || '').trim();
+    return { name, url };
+  }).filter(l => l.url);
+}
+
 // _renderTEEModal: internal renderer — builds and opens the form
 function _renderTEEModal(item, type, defaultDate, defaultStatus, carried) {
   const id      = item?.id || '';
@@ -9579,6 +10001,12 @@ function _renderTEEModal(item, type, defaultDate, defaultStatus, carried) {
   const notesField = `
     <div class="form-group"><label class="form-label">Notes</label>
       <textarea class="form-textarea" id="tee-notes" placeholder="Additional notes…">${val('notes')}</textarea></div>`;
+  // P4-R012a: TEE Links (discovery basis P4-D022) — shared across all
+  // types, same val()-with-empty-array-guard shape already used by
+  // Subtasks below (carried?.[field] ?? item?.[field] would otherwise
+  // treat a carried empty array as "present," masking a saved item's real
+  // links — the explicit .length check avoids that).
+  const linksField = _buildTEELinksEditor(val('links',[]).length ? val('links',[]) : (item?.links||[]));
   const subtasksField = `
     <div class="form-group">
       <label class="form-label">Subtasks</label>
@@ -9739,8 +10167,8 @@ function _renderTEEModal(item, type, defaultDate, defaultStatus, carried) {
               </div>
               ${tagsChipsRow}
               ${notesField}
+              ${linksField}
             </div>
-            <div class="tee-links-spacer" aria-hidden="true"></div>
 
             <div class="tee-section-header">Execution</div>
             <div class="tee-field-group">
@@ -9799,6 +10227,20 @@ function saveTEEModal(existingId, type) {
           })()) : null,
         };
       }).filter(s => s.text).map(s => s.doneAt ? s : { text: s.text, done: s.done });
+    })(),
+    // P4-R012a: TEE Links (discovery basis P4-D022) — shared across all
+    // types, read directly from the DOM at save time via the shared
+    // _getTeeLinksFromDOM() helper (no hidden value-holder), same overall
+    // shape as Subtasks just above. A filled Name with a blank URL is
+    // dropped rather than blocking Save (see _getTeeLinksFromDOM). The
+    // max-10 cap is a soft UI-level guard (see _teeLinksCheckMax) — this
+    // .slice(0,10) is only a defensive backstop in case more than 10 rows
+    // somehow exist in the DOM, and never touches or discards any
+    // already-saved sheet data.
+    links: (() => {
+      const rows = _getTeeLinksFromDOM();
+      if (rows === null) return existingId ? (STATE.items.find(i=>i.id===existingId)?.links||[]) : [];
+      return rows.slice(0, 10);
     })(),
   };
 
@@ -9926,12 +10368,22 @@ function quickAddPersonFromModal() {
   // instead of the old .tee-type-btn.active textContent parse.
   const currentType     = document.getElementById('tee-current-type')?.value || 'task';
   // Carry shared fields
+  // P4-R012a: links added — TEE Links (discovery basis P4-D022) is a
+  // shared field like category/tags/notes, so an in-progress, unsaved
+  // Links row typed before opening quick-add-person must survive the same
+  // way those already do. Read via the shared _getTeeLinksFromDOM() helper
+  // (same one saveTEEModal uses) — the quick-add mini-form's own
+  // openModal() call below replaces the entire TEE Add/Edit DOM, so
+  // anything not captured here would otherwise be silently lost, the same
+  // way Subtasks currently is (a pre-existing, separate gap — see
+  // P4-D022 §12 — not fixed here, but deliberately not repeated for Links).
   const carried = {
     title:    document.getElementById('tee-title')?.value || '',
     desc:     document.getElementById('tee-desc')?.value || '',
     category: document.getElementById('tee-category')?.value || '',
     tags:     document.getElementById('tee-tags')?.value || '',
     notes:    document.getElementById('tee-notes')?.value || '',
+    links:    _getTeeLinksFromDOM() || [],
   };
   // Extra task fields
   const carriedTask = {
