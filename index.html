@@ -995,6 +995,17 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 }
 .subtask-row:hover .subtask-del { opacity: 1; }
 .subtask-del:hover { background: rgba(248,113,113,0.15); color: var(--red); }
+/* P4-R013c: archived TEE Detail Subtasks now render via _buildSubtaskRows'
+   readOnly mode (discovery basis P4-D024) — these rows carry no onclick at
+   all, but without this override they would still visually hover/cursor
+   exactly like an interactive row (misleading, since clicking does nothing
+   by design). Narrow, additive-only: does not touch .subtask-row/-check/
+   -text's own base rules above, so active TEE Detail rows and the Kanban
+   openSubtaskPanel rows (neither of which ever render `.is-readonly`) are
+   completely unaffected. */
+.subtask-row.is-readonly:hover { background: var(--glass); }
+.subtask-row.is-readonly .subtask-check,
+.subtask-row.is-readonly .subtask-text { cursor: default; }
 .subtask-edit-input {
   flex: 1; background: transparent; border: none; outline: none;
   font-size: 12px; color: var(--text); font-family: var(--font);
@@ -1683,22 +1694,131 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
    ============================================================ */
 
 /* TEE detail view */
-.detail-grid {
-  display: flex; flex-direction: column; gap: 6px;
-  margin: 16px 0; padding: 14px;
-  background: var(--glass); border: 1px solid var(--border); border-radius: 12px;
-}
+/* P4-R013c: .detail-grid removed (discovery basis P4-D024) — zero markup
+   usages re-confirmed before removal; TEE Detail has used the
+   .tee-section-header/.tee-field-group section-card layout since P4-R013a. */
 .detail-row {
-  display: flex; align-items: flex-start; gap: 12px;
+  display: flex; align-items: center; gap: 12px;
   font-size: 13px; padding: 3px 0;
 }
 .detail-label {
   width: 100px; flex-shrink: 0;
   font-size: 11px; font-weight: 600; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.5px; padding-top: 2px;
+  text-transform: uppercase; letter-spacing: 0.5px;
 }
 .detail-value { color: var(--text); line-height: 1.4; }
 .detail-mono  { font-family: var(--mono); font-size: 12px; }
+
+/* ── TEE Detail Shell + Spacing (P4-R013a-fix1, corrected -fix2, corrected -fix3) ──
+   Discovery basis: P4-D023. Detail-specific shell mirroring the existing
+   Add/Edit .tee-modal-shell pattern (header outside scroll, footer outside
+   scroll, only the middle content region scrolls) — dedicated classes only,
+   no rule here touches .tee-modal-shell, .tee-modal-header, .tee-modal-form,
+   .tee-modal-footer, or the base .modal-actions rule, so Add/Edit and any
+   other modal using .modal-actions are unaffected.
+   fix3 root-cause correction: -fix2's intended fix was a `.modal:has(.tee-detail-shell)`
+   rule (mirroring `.modal:has(.tee-modal-with-panel)` below), but that rule
+   never actually took effect — verified at runtime via document.styleSheets
+   that the rule was entirely absent from the parsed CSSOM. The cause was a
+   typo one paragraph above it in -fix2's own documentation comment: the
+   class list "tee-modal-shell / tee-modal-header / tee-modal-form" was
+   written with a trailing asterisk directly against the closing slash,
+   which (read as plain characters, not prose) is itself a comment-close
+   token — it ended this whole documentation comment early, so every
+   character after it up to the next accidental comment-close token
+   (including the `.modal:has(...)` rule itself) was silently discarded by
+   the CSS parser as invalid content. Fixed here by removing the slash-joined
+   class list formatting from prose entirely (see above) and, independently,
+   by no longer depending on a `.modal:has(...)` override at all: instead of
+   asking .modal to become a flex column with hidden overflow, .tee-detail-shell
+   now caps its own height the same way .tee-detail-shell mirrors
+   .tee-modal-shell's proven technique — a local `max-height: calc(90vh - 60px)`
+   budget (90vh minus .modal's own 28px*2 padding + 1px*2 border + 2px
+   rounding safety margin, identical box-model math to .tee-modal-shell's
+   own calc above) — so the shell's flex column (header/body/footer) is
+   height-bounded on its own, .tee-detail-body's `overflow-y: auto` handles
+   all internal scrolling, and .modal's own base `overflow-y: auto` remains
+   an untouched safety-net fallback exactly as it already is for Add/Edit.
+   This removes the only-other-difference from Add/Edit's already-working
+   pattern and does not touch .modal's base rule for any other modal. */
+.tee-detail-shell  { display: flex; flex-direction: column; max-height: calc(90vh - 60px); }
+.tee-detail-header { flex-shrink: 0; flex-direction: column !important; align-items: stretch !important; justify-content: flex-start !important; margin-bottom: 6px !important; }
+.tee-detail-header-row1 { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+.tee-detail-header-row2 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.tee-detail-title { font-size: 18px; font-weight: 700; color: var(--text); line-height: 1.3; min-width: 0; overflow-wrap: break-word; }
+.tee-detail-body   { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; padding-top: 2px; }
+/* Footer stays the same .modal-actions markup/behavior as before — this
+   selector only keeps it from shrinking as a flex child of .tee-detail-shell;
+   it does not change .modal-actions' own base rule (still used unscoped by
+   this and any other modal that already relies on it). fix4: margin-top
+   bumped 10px -> 18px per owner review ("footer buttons can move slightly
+   more downward") — still Detail-scoped only, still not the footer's own
+   scroll/behavior. */
+.tee-detail-shell > .modal-actions { flex-shrink: 0; margin-top: 18px !important; }
+/* Tighter section spacing for the read-only Detail view than Add/Edit's own
+   .tee-section-header/.tee-field-group usage — scoped to .tee-detail-body
+   only, so Add/Edit's identical classes elsewhere in the file are untouched.
+   fix2 tightened section-header margins and field-group padding/gap and
+   zeroed .subtask-section's own global margin-top when it's the sole child
+   of the Execution card (that global rule is otherwise only ever used
+   inside this exact Detail context, so the override carries no risk
+   elsewhere). fix3 pulls the Execution card's Subtasks content up a further
+   4px past that zero point per owner review ("Subtasks feels pushed down"),
+   and tightens row label/value vertical alignment (.detail-row/.detail-label
+   below) — both scoped the same Detail-only way, no Add/Edit selector
+   touched. */
+.tee-detail-body .tee-section-header { margin: 8px 0 3px; }
+.tee-detail-body .tee-section-header:first-of-type { margin-top: 0; }
+.tee-detail-body .tee-field-group { padding: 8px 10px; gap: 4px; margin-bottom: 0; }
+.tee-detail-body .tee-field-group .subtask-section { margin-top: -4px; }
+/* fix4: guaranteed-width dash separator for date/time ranges (Task
+   Timeframe, Event combined time range) — see the _dtDash comment inside
+   openTEEDetail for why a plain space-hyphen-space run isn't reliable
+   across fonts. Detail-only, no other modal renders this class. */
+.tee-detail-dash { margin: 0 4px; }
+/* fix5: the "Date and Time" row's middle dot (Event/Entry) read as too
+   faint per owner review — bolder weight and a slightly larger size than
+   the surrounding text, plus the same guaranteed-margin technique as
+   .tee-detail-dash above, so the date/time split stays clearly visible
+   regardless of font fallback. Also reused inline in the header's
+   Completed/Done timestamp (see .tee-detail-header-timestamp below) so
+   both date-vs-time splits look consistent. Detail-only. */
+.tee-detail-dot { margin: 0 6px; font-weight: 700; font-size: 1.15em; opacity: 0.7; }
+/* fix5: Completed/Done terminal timestamp, now shown inline in the header
+   next to the Status chip instead of as its own Details-section row (see
+   buildModalDetailHeader) — small and muted so it reads as metadata next
+   to the interactive Status chip, not as its own competing label. Detail-
+   only, no other modal renders this class. */
+.tee-detail-header-timestamp { font-size: 10px; color: var(--muted); margin-left: 4px; }
+
+/* ── TEE Detail Read-Only People Chips (P4-R013b) ──────────────────────────
+   Discovery basis: P4-D023, owner go-ahead. Dedicated tee-detail-people
+   and tee-detail-person-chip namespace — deliberately not reusing Add/Edit's
+   interactive .people-picker/.chip-option/.people-chip classes, since those
+   imply click-to-select/remove; these chips are visual-only (no hover
+   state, cursor:default, no onclick anywhere in the markup). Uses existing
+   theme variables only (--muted/--text/--glass2/--border2/--accent2,
+   already used elsewhere in this file, e.g. .tee-detail-link-action) so
+   dark/light readability comes for free. */
+.tee-detail-people-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tee-detail-people-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.tee-detail-people-legend { font-size: 11px; color: var(--muted); }
+.tee-detail-people-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.tee-detail-people-empty { font-size: 13px; color: var(--muted); font-style: italic; }
+.tee-detail-person-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 500; color: var(--text);
+  background: var(--glass2); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 4px 11px; line-height: 1.3;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  cursor: default;
+}
+/* Lead chip — stronger tint/border/weight than a regular contributor chip,
+   Task-only (see _buildDetailPeopleChips; Event/Entry never add .lead). */
+.tee-detail-person-chip.lead {
+  background: rgba(40,92,112,0.22); border-color: var(--accent2); color: var(--accent2); font-weight: 700;
+}
+.tee-detail-person-star { font-size: 11px; }
 
 /* ── TEE Detail Links Section (P4-R012b, refined P4-R012b-fix1) ───────────
    Discovery basis: P4-D022. Dedicated .tee-detail-link-* namespace only —
@@ -1716,8 +1836,20 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
    The raw URL/path is no longer shown as a visible line — it is preserved
    only internally, via each pill's title attribute, the href, and Copy
    Path — satisfying "keep raw URL/path internally for href, title, and
-   copy behavior" without a persistently visible line. */
-.tee-detail-links { margin: 14px 0 4px; }
+   copy behavior" without a persistently visible line.
+   fix4: owner review of -fix3 still saw a large Notes-to-Links gap, "as if
+   an empty field exists there". Root cause: the actual top-of-section
+   spacing comes from the "Links" label's own inline style inside
+   _buildTEELinksDetailSection (a 14px top margin baked into that div's
+   style attribute, since it has no class of its own to target from CSS),
+   not from this wrapper's margin — this wrapper's own top margin was
+   already tightened to 4px in -fix3 and stacked on top of the label's 14px,
+   compounding the gap. Zeroed here (top only) so the wrapper contributes no
+   extra top space beyond .tee-field-group's own 4px flex gap, matching how
+   every other Context row already spaces itself; the paired 14px -> 0
+   change to the label's inline margin is the other half of this fix (see
+   _buildTEELinksDetailSection). */
+.tee-detail-links { margin: 0 0 2px; }
 .tee-detail-link-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .tee-detail-link-item {
   display: inline-flex; align-items: center; gap: 4px;
@@ -4542,18 +4674,67 @@ function _modalCloseBtn(onClickExpr = 'clearNav()') {
 }
 // Shared "detail view" modal header — used by openTEEDetail.
 // colorSwatch defaults to '' for consumers that don't render one.
+// P4-R013a-fix1: header restructured per owner visual review (discovery
+// basis P4-D023) — Row 1 is now Title (left) + close button (right); Row 2
+// is a compact Type/Priority/Status chip row (Status is newly added here,
+// moved out of the Details section body — see openTEEDetail). The visible
+// TEE id line is removed entirely. Priority keeps its existing
+// openPriorityDropdown onclick/behavior unchanged. Status is built inline
+// here using the exact same id/onclick/color logic _buildDetailStatusRow
+// already used (that function itself is unchanged; its only call site was
+// removed from openTEEDetail's Details section, since Status now renders
+// here instead) — this preserves the existing in-place status-button-update
+// selector (`#detail-status-btn-<id>, [onclick*="openStatusDropdown(...)"]`),
+// which matches by onclick content as well as by id.
+// P4-R013a-fix2: Type chip emoji removed per owner visual review — the
+// `typeIcon` parameter is intentionally left in the signature (still passed
+// by openTEEDetail's only call site) but no longer rendered, so the chip
+// reads as plain text ("Task"/"Event"/"Entry") only.
 function buildModalDetailHeader(item, typeIcon, typeLabel, pri, colorSwatch = '') {
-  return `<div class="modal-title" style="align-items:flex-start;flex-direction:column;gap:8px">
-      <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
-        <span style="display:flex;align-items:center;gap:8px">
-          ${typeIcon}
-          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:3px 9px;border-radius:20px;background:${pri.bg};color:${pri.text}">${typeLabel}</span>
-          ${item.priority ? `<button class="status-badge-btn" style="font-size:10px;padding:3px 9px;background:${pri.bg};color:${pri.text};border-color:${pri.bar}44" onclick="openPriorityDropdown('${item.id}',this,event)" title="Change priority">${item.priority}</button>` : ''}
-        </span>
+  const _sc = getStatusColor(getDisplayStatus(item)) || '#64748B';
+  const { state: _hdrState, doneAt } = parseStatus(item.status);
+
+  // P4-R013a-fix5: full-date formatter local to this header (discovery
+  // basis P4-D023, owner visual review) — mirrors openTEEDetail's own
+  // fmtDisplayDate exactly (full weekday + full month names). Kept as its
+  // own tiny copy here rather than shared, since taking a dependency on
+  // openTEEDetail's local helper would require a new parameter at the
+  // single call site for no real benefit — buildModalDetailHeader has no
+  // other date-formatting need.
+  const _fmtHdrDate = str => {
+    if (!str) return '';
+    const d = new Date(str + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  };
+
+  // P4-R013a-fix5: terminal timestamp now renders inline after the Status
+  // chip as full date + time (undoes fix4's separate Details-section row
+  // per owner review — that row is no longer built in openTEEDetail at
+  // all). Only renders when parseStatus's state is exactly Completed or
+  // Done and a timestamp exists; a missing/malformed timestamp renders
+  // nothing extra. Display-only — parseStatus and saveTEEModal's terminal-
+  // timestamp write logic are both untouched.
+  let _doneAtHTML = '';
+  if ((_hdrState === 'Completed' || _hdrState === 'Done') && doneAt) {
+    const _dtParts   = doneAt.split(' ');
+    const _dtDateFmt = _fmtHdrDate(_dtParts[0]);
+    const _dtTimeFmt = _dtParts[1] ? fmtTime(_dtParts[1]) : '';
+    if (_dtDateFmt) {
+      _doneAtHTML = `<span class="tee-detail-header-timestamp">${_dtDateFmt}${_dtTimeFmt ? ` <span class="tee-detail-dot">·</span> ${_dtTimeFmt}` : ''}</span>`;
+    }
+  }
+  const statusChip = `<button id="detail-status-btn-${item.id}" class="status-badge-btn" style="font-size:10px;padding:3px 9px;background:${_sc}22;color:${_sc};border-color:${_sc}44" onclick="openStatusDropdown('${item.id}',this,event)" title="Change status">${getDisplayStatus(item)}</button>${_doneAtHTML}`;
+
+  return `<div class="modal-title tee-detail-header">
+      <div class="tee-detail-header-row1">
+        <span class="tee-detail-title">${colorSwatch}${item.title}</span>
         ${_modalCloseBtn()}
       </div>
-      <div style="font-size:18px;font-weight:700;color:var(--text);line-height:1.3">${colorSwatch}${item.title}</div>
-      <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${item.id}</div>
+      <div class="tee-detail-header-row2">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:3px 9px;border-radius:20px;background:${pri.bg};color:${pri.text}">${typeLabel}</span>
+        ${item.priority ? `<button class="status-badge-btn" style="font-size:10px;padding:3px 9px;background:${pri.bg};color:${pri.text};border-color:${pri.bar}44" onclick="openPriorityDropdown('${item.id}',this,event)" title="Change priority">${item.priority}</button>` : ''}
+        ${statusChip}
+      </div>
     </div>`;
 }
 // Shared "list view" modal header — used by _renderArchiveDrawer.
@@ -4627,17 +4808,9 @@ function _buildStatusBadge(t) {
   const _color = getStatusColor(_disp);
   return `<button class="status-badge-btn" style="background:${_color}22;color:${_color};border-color:${_color}44" onclick="openStatusDropdown('${t.id}',this,event)" title="Change status">${_disp}</button>`;
 }
-// Detail-modal status row — renders the Status detail-row for item detail modals.
-// Includes the status button (with id for in-place DOM update) and optional doneAt suffix.
-// Used by openTEEDetail().
-function _buildDetailStatusRow(item) {
-  const _sc = getStatusColor(getDisplayStatus(item)) || '#64748B';
-  const {doneAt} = parseStatus(item.status);
-  const _doneAtHTML = doneAt
-    ? `<span style="font-size:10px;color:var(--muted);margin-left:6px">at ${fmtTime(doneAt.split(' ')[1]||doneAt)}</span>`
-    : '';
-  return `<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><button id="detail-status-btn-${item.id}" class="status-badge-btn" style="background:${_sc}22;color:${_sc};border-color:${_sc}44" onclick="openStatusDropdown('${item.id}',this,event)" title="Change status">${getDisplayStatus(item)}</button>${_doneAtHTML}</span></div>`;
-}
+// P4-R013c: _buildDetailStatusRow removed (discovery basis P4-D024) — it had
+// been dead code since P4-R013a-fix1 moved Status into buildModalDetailHeader's
+// Row 2 chip row; re-confirmed zero call sites immediately before removal.
 
 // Type badge — non-clickable label (Task / Event / Entry)
 function _buildTypeBadge(type) {
@@ -4666,6 +4839,45 @@ function _buildDetailTagRow(tags, reopenExpr) {
     return `<button class="tag-btn" style="background:${tc.bg};color:${tc.text};border-color:${tc.border}" onclick="_navTo(()=>${reopenExpr},()=>openTagList('${t}'))" title="View all #${t} items"><span style="opacity:0.5">#</span>${t}</button>`;
   }).join(' ');
   return `<div class="detail-row"><span class="detail-label">Tags</span><span class="detail-value" style="display:flex;flex-wrap:wrap;gap:4px">${tagBtns}</span></div>`;
+}
+
+// ── TEE Detail Read-Only People Chips (P4-R013b) ────────────────────────
+// Discovery basis: P4-D023, owner go-ahead. Replaces the plain
+// formatAssigneesDisplay() text row in the Assign section with visual-only
+// chips echoing the Add/Edit people-chip look — no click/hover/remove
+// affordance, no Person Detail navigation, no people picker. Reads
+// item.assignees only; Task reuses the existing unchanged parseAssignees()
+// for Lead/Contributor distinction (same "slot 0 is Lead" convention
+// Add/Edit and saveTEEModal already rely on); Event/Entry reuse the
+// existing unchanged splitAssigneeNames(). parseAssignees, buildAssigneesStr,
+// and formatAssigneesDisplay (still used elsewhere, e.g. Kanban cards) are
+// all untouched by this helper. Text is escaped via the existing narrow
+// _escapeTEEText() helper (P4-R012b) rather than a new escaping function.
+function _buildDetailPeopleChips(item) {
+  const isTask = item.type === 'task';
+  const label  = isTask ? 'Assignees' : 'Participants';
+  const legend = isTask ? '<span class="tee-detail-people-legend">★ Lead</span>' : '';
+
+  const chips = [];
+  if (isTask) {
+    const { lead, contributors } = parseAssignees(item.assignees);
+    if (lead) chips.push({ name: lead, isLead: true });
+    (contributors || []).forEach(c => { if (c) chips.push({ name: c, isLead: false }); });
+  } else {
+    splitAssigneeNames(item.assignees).forEach(n => chips.push({ name: n, isLead: false }));
+  }
+
+  const chipsHTML = chips.length
+    ? chips.map(c => `<span class="tee-detail-person-chip${c.isLead ? ' lead' : ''}">${c.isLead ? '<span class="tee-detail-person-star">★</span> ' : ''}${_escapeTEEText(c.name)}</span>`).join('')
+    : `<span class="tee-detail-people-empty">No ${isTask ? 'assignees' : 'participants'}</span>`;
+
+  return `<div class="tee-detail-people">
+      <div class="tee-detail-people-head">
+        <span class="tee-detail-people-label">${label}</span>
+        ${legend}
+      </div>
+      <div class="tee-detail-people-chips">${chipsHTML}</div>
+    </div>`;
 }
 
 // ── TEE Detail Links Display + Open/Copy (P4-R012b) ─────────────────────
@@ -4804,9 +5016,15 @@ function _buildTEELinksDetailSection(links) {
     return `<span class="tee-detail-link-item tee-detail-link-inert" title="${safeRawAttr}">${safeName}</span>`;
   }).join('');
 
+  // fix4: top margin 14px -> 0 (owner review of P4-R013a-fix3 — Notes-to-
+  // Links gap read as "an empty field exists there"). This div has no
+  // class of its own, so no external Detail-scoped CSS rule could reach
+  // it — the only way to close that gap was this one inline value. Nothing
+  // else here changed: link classification, hrefs, Copy Path, and the
+  // bottom margin (spacing before the pill row) are all untouched.
   return `
     <div class="tee-detail-links">
-      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin:14px 0 4px">Links</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin:0 0 4px">Links</div>
       <div class="tee-detail-link-list">${items}</div>
     </div>`;
 }
@@ -4974,17 +5192,28 @@ function deleteSubtask(itemId, idx) {
   renderAll();
 }
 
-function _buildSubtaskRows(item, withDelete) {
+// P4-R013c: added the optional third `readOnly` parameter (discovery basis
+// P4-D024) — defaults to false, so every pre-existing 2-arg call site
+// (active TEE Detail, Kanban's openSubtaskPanel, toggleSubtask/deleteSubtask
+// in-place re-renders) is byte-identical to before. When readOnly is true
+// (archived TEE Detail only): the row gets an `is-readonly` class (for the
+// paired CSS below, so the row no longer hints at being clickable), the
+// checkbox's `onclick` is omitted entirely (never calls toggleSubtask), and
+// the delete button is omitted regardless of `withDelete` (never calls
+// deleteSubtask) — checked/done visuals, text, and the doneAt timestamp all
+// render identically to the active/interactive path.
+function _buildSubtaskRows(item, withDelete, readOnly = false) {
   return (item.subtasks||[]).map((s, idx) => {
     const tsHTML = s.doneAt
       ? '<span id="st-ts-' + item.id + '-' + idx + '" class="subtask-ts">' + _fmtSubtaskTs(s.doneAt) + '</span>'
       : '<span id="st-ts-' + item.id + '-' + idx + '" class="subtask-ts"></span>';
-    const delBtn = withDelete
+    const delBtn = (withDelete && !readOnly)
       ? '<button class="subtask-del" onclick="deleteSubtask(\'' + item.id + '\',' + idx + ')" title="Remove">✕</button>'
       : '';
-    return '<div class="subtask-row" id="st-row-' + item.id + '-' + idx + '">'
+    const chkOnclick = readOnly ? '' : ' onclick="toggleSubtask(\'' + item.id + '\',' + idx + ')"';
+    return '<div class="subtask-row' + (readOnly ? ' is-readonly' : '') + '" id="st-row-' + item.id + '-' + idx + '">'
       + '<div id="st-chk-' + item.id + '-' + idx + '" class="subtask-check' + (s.done ? ' checked' : '') + '"'
-      + ' onclick="toggleSubtask(\'' + item.id + '\',' + idx + ')"></div>'
+      + chkOnclick + '></div>'
       + '<span id="st-txt-' + item.id + '-' + idx + '" class="subtask-text' + (s.done ? ' done' : '') + '">' + (s.text||'') + '</span>'
       + tsHTML
       + delBtn
@@ -4992,8 +5221,18 @@ function _buildSubtaskRows(item, withDelete) {
   }).join('');
 }
 
-function _buildSubtaskSection(item, withDelete) {
+// P4-R013c: added the optional third `readOnly` parameter (discovery basis
+// P4-D024) — defaults to false, so the one pre-existing call site (active
+// TEE Detail, `_buildSubtaskSection(item, false)`) is byte-identical to
+// before. When readOnly is true (archived TEE Detail only): zero subtasks
+// renders nothing at all (matches -fix5's existing "no Execution section"
+// behavior for archived items with no subtasks — the add-input branch below
+// is never reached), and when there are subtasks, the add-row is always
+// suppressed regardless of `withDelete` (archived items never offer to add
+// a subtask) and rows render via the new readOnly mode in _buildSubtaskRows.
+function _buildSubtaskSection(item, withDelete, readOnly = false) {
   if (!item.subtasks?.length && !withDelete) {
+    if (readOnly) return '';
     // Detail view with no subtasks: show add input only
     return `<div class="subtask-section">
       <div class="subtask-header">
@@ -5015,9 +5254,9 @@ function _buildSubtaskSection(item, withDelete) {
       <span id="st-hdr-${item.id}" class="subtask-summary">${_subtaskSummary(item.subtasks)}</span>
     </div>
     <div id="st-list-${item.id}" class="subtask-list">
-      ${_buildSubtaskRows(item, withDelete)}
+      ${_buildSubtaskRows(item, withDelete, readOnly)}
     </div>
-    ${withDelete ? '' : `<div class="subtask-add-row" style="display:flex;align-items:center;gap:6px">
+    ${(withDelete || readOnly) ? '' : `<div class="subtask-add-row" style="display:flex;align-items:center;gap:6px">
       <input class="subtask-add-input" id="st-new-${item.id}" placeholder="New subtask…"
         onkeydown="if(event.key==='Enter'){event.preventDefault();addSubtaskInline('${item.id}',this);}">
       <button type="button" style="flex-shrink:0;padding:4px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--glass2);color:var(--text2);font-size:11px;font-family:var(--font);cursor:pointer;"
@@ -9204,67 +9443,206 @@ function openTEEDetail(itemId, _u1, isArchived) {
        </div>`
     : '';
 
+  // P4-R013a-fix2: full weekday + full month names in Detail date displays
+  // (discovery basis P4-D023, owner visual review) — was 'short'/'short'
+  // ("Sat, Jul 4, 2026"), now 'long'/'long' ("Saturday, July 4, 2026").
+  // fmtDisplayDate is local to openTEEDetail only — this does not affect
+  // any other date display in the app (Add/Edit, list/board/calendar views
+  // each use their own separate date formatting).
   const fmtDisplayDate = str => {
     if (!str) return '';
     const d = new Date(str + 'T00:00:00');
-    return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+    return d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
   };
 
-  const timeStr = fmtTimeRange(item.time, item.endTime);
+  // P4-R013a-fix4: Detail-only dash separator (owner review — "any time/date
+  // range using a dash must include spaces before and after it"). A plain
+  // " - " with regular space characters was verified byte-correct (each
+  // side is a real 0x20 space, confirmed via Range measurement) but reads
+  // visually tight-to-attached with certain fallback fonts, since a run of
+  // regular whitespace collapses to a single (font-dependent-width) space
+  // under normal HTML whitespace rules — the gap is then only as wide as
+  // that font's space glyph, which can be very narrow. `.tee-detail-dash`
+  // below gives the dash a fixed CSS margin instead, so the visual gap is a
+  // guaranteed pixel value independent of font/glyph metrics. row()/detail
+  // values are already inserted as HTML (see buildModalDetailHeader's own
+  // inline-styled spans for the same pattern elsewhere in this file), so
+  // this small span is safe to embed the same way.
+  const _dtDash = '<span class="tee-detail-dash">-</span>';
 
-  const dateField   = (item.type === 'task') ? item.dueDate   : item.date;
-  const startField  = (item.type === 'task') ? item.startDate : '';
+  // P4-R013a-fix5: same reasoning as _dtDash above, applied to the middle
+  // dot joining an Event/Entry's date and time into one "Date and Time"
+  // row — a plain " · " read as too faint/subtle per owner review.
+  // `.tee-detail-dot` gives it a fixed margin plus bolder weight/size so it
+  // stays clearly visible regardless of font fallback.
+  const _dtDot = '<span class="tee-detail-dot">·</span>';
+
+  // Detail-only time formatter (fmtTimeRange itself is unchanged — it is
+  // also used by the Kanban card time display; this local helper is scoped
+  // to openTEEDetail only). Degrades safely: both start and end present ->
+  // "start - end", only one present -> that one alone, neither -> ''.
+  const fmtDetailTime = (start, end) => {
+    if (start && end) return `${fmtTime(start)} ${_dtDash} ${fmtTime(end)}`;
+    if (start) return fmtTime(start);
+    if (end) return fmtTime(end);
+    return '';
+  };
+
+  // P4-R013a-fix4: corrected date/time row rules per owner visual review of
+  // -fix3 (discovery basis P4-D023) — display-only: saved fields
+  // (item.dueDate, item.startDate, item.date, item.time, item.endTime) and
+  // Add/Edit are both unchanged; this only changes how openTEEDetail
+  // presents them. Task keeps -fix3's two-row model as-is (Due Date, plus
+  // a hyphen-spaced Timeframe row when Start Date also exists — already
+  // correct, spaces confirmed present on both sides of the hyphen). Event
+  // and Entry are now combined into one "Date and Time" row instead of
+  // -fix3's separate Date/Time rows, joined with a middle dot when a time
+  // value exists, degrading to the date alone when no time value is
+  // present. No "Timeline"/"Schedule"/"When" labels remain.
+  let dateTimeRow = '';
+  let timeframeRow = '';
+  if (item.type === 'task') {
+    if (item.dueDate) {
+      dateTimeRow = row('Due Date', fmtDisplayDate(item.dueDate));
+      if (item.startDate) {
+        timeframeRow = row('Timeframe', `${fmtDisplayDate(item.startDate)} ${_dtDash} ${fmtDisplayDate(item.dueDate)}`);
+      }
+    } else if (item.startDate) {
+      dateTimeRow = row('Start Date', fmtDisplayDate(item.startDate));
+    }
+  } else if (item.type === 'event') {
+    if (item.date) {
+      const timeVal = fmtDetailTime(item.time, item.endTime);
+      dateTimeRow = row('Date and Time', timeVal ? `${fmtDisplayDate(item.date)} ${_dtDot} ${timeVal}` : fmtDisplayDate(item.date));
+    }
+  } else { // entry
+    if (item.date) {
+      const timeVal = item.time ? fmtTime(item.time) : '';
+      dateTimeRow = row('Date and Time', timeVal ? `${fmtDisplayDate(item.date)} ${_dtDot} ${timeVal}` : fmtDisplayDate(item.date));
+    }
+  }
+
+  // P4-R013a-fix5: the Completed/Done terminal timestamp is no longer a
+  // Details-section row (fix4's interpretation, undone here per owner
+  // review) — it now renders inline in the header next to the Status chip
+  // instead (see buildModalDetailHeader). Nothing else here builds a
+  // timestamp row any more; non-terminal items already showed no such row
+  // before fix4 and still show none.
   // P4-R011b: Event color swatch removed from TEE Detail (discovery basis
   // P4-D021a) — no dot renders before the title for any Event, including
   // legacy Events that already have a saved Color value. buildModalDetailHeader's
   // colorSwatch parameter is left in place (its own default is already ''),
   // simply no longer passed a non-empty value from here.
 
-  // Push self to stack before rendering so ‹ Back from child returns here
+  // P4-R013a: TEE Detail section grouping (discovery basis P4-D023) — the
+  // former single flat .detail-grid card is replaced by the same
+  // .tee-section-header/.tee-field-group section-card language Add/Edit
+  // already uses (Details/Assign/Context/Execution), reusing every
+  // existing field-rendering helper/row unchanged. Each section's content
+  // is computed first, then wrapped only if non-empty — an empty section
+  // renders nothing at all, matching the owner-approved "hide a whole
+  // section if it would have no visible content" rule. Field membership,
+  // visibility rules, Links (P4-R012b/-fix1, untouched), and the archived-
+  // Subtasks branch are all otherwise identical to the pre-P4-R013a markup.
+  const section = (title, content) => content
+    ? `<div class="tee-section-header">${title}</div><div class="tee-field-group">${content}</div>`
+    : '';
+
+  // P4-R013a-fix1: Status moved out of the Details section body into the
+  // header's Row 2 chip row (see buildModalDetailHeader) — no longer part
+  // of detailsContent. Its exact id/onclick/color logic was reproduced
+  // inline in buildModalDetailHeader so the existing in-place
+  // status-button-update selector (`#detail-status-btn-<id>, [onclick*=...]`)
+  // keeps matching either way. (P4-R013c: the now-unreachable
+  // _buildDetailStatusRow this section used to call has been removed —
+  // discovery basis P4-D024, zero call sites re-confirmed before removal.)
+  // P4-R013a-fix2: Description/Notes label+box are now each wrapped in a
+  // single container div, so .tee-field-group's own gap (a single flex
+  // "gap" between direct children) is the only space between a row above
+  // and the label — the label-to-box distance is controlled purely by the
+  // label's own small margin-bottom, instead of the two compounding
+  // (gap + margin) as in r013a-fix1. This is what "tighten gap between
+  // Description/Notes label and its box" actually required.
+  const detailsContent = [
+    dateTimeRow,
+    timeframeRow,
+    item.desc ? `<div><div style="margin:0 0 3px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">Description</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6;padding:8px 10px;background:var(--glass);border:1px solid var(--border);border-radius:10px">${item.desc}</div></div>` : ''
+  ].join('');
+
+  // P4-R013b: Assign section now shows read-only people chips instead of
+  // the plain formatAssigneesDisplay() text (discovery basis P4-D023, owner
+  // go-ahead) — see _buildDetailPeopleChips above. Always returns non-empty
+  // HTML (a muted "No assignees"/"No participants" fallback when there are
+  // none), matching -fix5's existing always-render-the-Assign-card behavior
+  // (formatAssigneesDisplay likewise always returned at least '—' before).
+  const assignContent = _buildDetailPeopleChips(item);
+
+  // P4-R013a-fix3: Context order corrected per owner visual review
+  // (discovery basis P4-D023) — Department, Project, Category, Tags, Notes,
+  // Links (was Category, Project, Department, Tags, Notes, Links). Tags
+  // stays between Category and Notes, unchanged behavior/position relative
+  // to Notes/Links; only Department/Project/Category were reordered.
+  const contextContent = [
+    row('Department', item.dept),
+    row('Project', item.project),
+    row('Category', item.category),
+    _buildDetailTagRow(item.tags, `openTEEDetail('${item.id}')`),
+    item.notes ? `<div><div style="margin:0 0 3px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">Notes</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6;padding:8px 10px;background:var(--glass);border:1px solid var(--border);border-radius:10px">${item.notes}</div></div>` : '',
+    _buildTEELinksDetailSection(item.links)
+  ].join('');
+
+  // P4-R013c: the archived branch used to hand-inline a duplicate of
+  // _buildSubtaskSection/_buildSubtaskRows' own markup directly here
+  // (discovery basis P4-D024) — that duplicate put onclick="toggleSubtask(...)"
+  // on the *entire* row (wider than the active path's checkbox-only handler)
+  // even though toggleSubtask() always silently no-ops for an archived item
+  // (its STATE.items.find(...) lookup can never match one), producing a row
+  // that visually hovered/looked clickable but did nothing. Both branches now
+  // call the same shared helper — active unchanged (`_buildSubtaskSection(item,
+  // false)`, still 2 args, still exactly the interactive/editable rendering
+  // it always was), archived now genuinely read-only via the new third
+  // argument (`_buildSubtaskSection(item, false, true)`): no row/checkbox
+  // onclick, no delete button, no add-row, zero subtasks still renders
+  // nothing (identical to the prior archived empty-state), and checked/done
+  // visuals, text, and doneAt timestamps all render exactly as before.
+  const executionContent = _buildSubtaskSection(item, false, isArchived);
+
+  // P4-R013a-fix1: TEE Detail shell/spacing correction (discovery basis
+  // P4-D023, owner visual review of P4-R013a) — header and footer now sit
+  // outside a dedicated scrollable body region (.tee-detail-shell/
+  // .tee-detail-body, Detail-specific, no shared selectors with Add/Edit's
+  // .tee-modal-shell/.tee-modal-form-scroll/.tee-modal-footer). The footer
+  // itself is still the exact same .modal-actions markup/behavior as
+  // before (Back/Archive/Edit/Restore, identical onclick handlers) — only
+  // its position in the DOM (sibling after .tee-detail-body, instead of
+  // inline within the scrolling flow) changed, via a narrow
+  // `.tee-detail-shell > .modal-actions` CSS selector that does not touch
+  // .modal-actions' own base rule (see CSS block).
   openModal(`
-    ${buildModalDetailHeader(item, typeIcon, typeLabel, pri)}
+    <div class="tee-detail-shell">
+      ${buildModalDetailHeader(item, typeIcon, typeLabel, pri)}
 
-    <div class="detail-grid">
-      ${_buildDetailStatusRow(item)}
-      ${row(item.type === 'task' ? 'Due Date' : 'Date', fmtDisplayDate(dateField))}
-      ${row('Start Date', fmtDisplayDate(startField))}
-      ${row('Time', timeStr)}
-      ${row('Category', item.category)}
-      ${row('Project', item.project)}
-      ${row('Assignees', formatAssigneesDisplay(item))}
-      ${row('Department', item.dept)}
-      ${_buildDetailTagRow(item.tags, `openTEEDetail('${item.id}')`)}
-    </div>
+      <div class="tee-detail-body">
+        ${section('Details', detailsContent)}
+        ${section('Assign', assignContent)}
+        ${section('Context', contextContent)}
+        ${section('Execution', executionContent)}
 
-    ${item.desc  ? `<div style="margin:14px 0 4px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">Description</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.6;padding:10px;background:var(--glass);border:1px solid var(--border);border-radius:10px">${item.desc}</div>` : ''}
-    ${item.notes ? `<div style="margin:14px 0 4px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">Notes</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.6;padding:10px;background:var(--glass);border:1px solid var(--border);border-radius:10px">${item.notes}</div>` : ''}
+        ${item.archivedDate ? `<div style="margin-bottom:12px;padding:8px 12px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;font-size:12px;color:var(--yellow)">Archived ${fmtDisplayDate(item.archivedDate)} · ${item.archivedBy || 'auto'}</div>` : ''}
+      </div>
 
-    ${_buildTEELinksDetailSection(item.links)}
-
-    ${!isArchived ? _buildSubtaskSection(item, false) : (item.subtasks?.length ? '<div class="subtask-section"><div class="subtask-header"><span class="subtask-header-lbl">Subtasks</span><span class="subtask-summary" id="st-hdr-'+item.id+'">' + _subtaskSummary(item.subtasks) + '</span></div><div class="subtask-list">'
-        + (item.subtasks||[]).map((s,idx) =>
-            '<div class="subtask-row" onclick="toggleSubtask(\''+item.id+'\','+idx+')">'
-            + '<div class="subtask-check' + (s.done?' checked':'') + '" id="st-chk-'+item.id+'-'+idx+'"></div>'
-            + '<span class="subtask-text' + (s.done?' done':'') + '" id="st-txt-'+item.id+'-'+idx+'">' + (s.text||'') + '</span>'
-            + '<span class="subtask-ts" id="st-ts-'+item.id+'-'+idx+'">' + (s.doneAt ? _fmtSubtaskTs(s.doneAt) : '') + '</span>'
-            + '</div>'
-          ).join('')
-        + '</div></div>'
-        : '')}
-
-    ${item.archivedDate ? `<div style="margin-bottom:12px;padding:8px 12px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;font-size:12px;color:var(--yellow)">Archived ${fmtDisplayDate(item.archivedDate)} · ${item.archivedBy || 'auto'}</div>` : ''}
-
-    <div class="modal-actions" style="margin-top:20px">
-      ${_backBtn()}
-      ${isArchived
-        ? `<button class="btn-primary" onclick="restoreFromArchive('${item.id}')">Restore to Active</button>`
-        : `<div style="display:flex;gap:8px">
-             <button class="btn-ghost" onclick="archiveItem('${item.id}')">Archive</button>
-             <button class="btn-primary" onclick="_navTo(()=>openTEEDetail('${item.id}'),()=>openTEEModal('${item.id}'))">Edit</button>
-           </div>`
-      }
+      <div class="modal-actions" style="margin-top:18px">
+        ${_backBtn()}
+        ${isArchived
+          ? `<button class="btn-primary" onclick="restoreFromArchive('${item.id}')">Restore to Active</button>`
+          : `<div style="display:flex;gap:8px">
+               <button class="btn-ghost" onclick="archiveItem('${item.id}')">Archive</button>
+               <button class="btn-primary" onclick="_navTo(()=>openTEEDetail('${item.id}'),()=>openTEEModal('${item.id}'))">Edit</button>
+             </div>`
+        }
+      </div>
     </div>`);
 }
 
