@@ -3912,6 +3912,7 @@ const CONFIG = {
     contacts:  '👤 Contacts',
     locations: '📍 Locations',
     people:    '👥 People',
+    tags:      'Tags',
   }
 };
 
@@ -4194,6 +4195,7 @@ const STATE = {
   peopleFilter:     { context: 'all', search: '' }, // context: 'all'|'today'|'week'|'idle'
   dirSort:          'az',
   sheetConnected:   false,
+  tagCatalog:       [],  // loaded from CONFIG.SHEETS.tags — additive metadata only, never authoritative for record-level tags (P4-R027)
 
   // ── Planner state ──────────────────────────────────────────────────
   plannerView:      'month',   // 'month' | 'week' | 'day'
@@ -5986,6 +5988,73 @@ async function savePerson(p) {
 }
 async function deletePerson(id) { if (!STATE.sheetConnected) return; await sheetDelete(CONFIG.SHEETS.people, id); }
 
+// ── TAGS CATALOG (read-only, additive metadata — P4-R027) ────
+// Normalize a raw NormalizedKey/Tag cell into the catalog's comparison key: trim, strip one leading '#', trim, lowercase
+function _normalizeTagCatalogKey(raw) {
+  return (raw||'').trim().replace(/^#/,'').trim().toLowerCase();
+}
+// Interpret a sheet "Active" cell; blank/missing defaults to TRUE (keeps manually added rows active unless explicitly set FALSE)
+function _parseTagCatalogActive(raw) {
+  if (raw === undefined || raw === null) return true;
+  if (raw === true) return true;
+  if (raw === false) return false;
+  const s = String(raw).trim();
+  if (s === '') return true;
+  return s.toUpperCase() === 'TRUE';
+}
+async function loadTagCatalog() {
+  try {
+    const rows = await sheetGetAll(CONFIG.SHEETS.tags);
+    const seen = new Set();
+    const catalog = [];
+    (rows||[]).forEach(r => {
+      const tag = (r['Tag']||'').trim();
+      if (!tag) return;
+      let normalizedKey = _normalizeTagCatalogKey(r['NormalizedKey']);
+      if (!normalizedKey) normalizedKey = _normalizeTagCatalogKey(tag);
+      if (!normalizedKey) return;
+      if (seen.has(normalizedKey)) {
+        console.warn('loadTagCatalog: duplicate NormalizedKey skipped —', normalizedKey);
+        return;
+      }
+      seen.add(normalizedKey);
+      catalog.push({
+        tag:           tag,
+        normalizedKey: normalizedKey,
+        color:         (r['Color']||'').trim(),
+        active:        _parseTagCatalogActive(r['Active']),
+        createdAt:     r['CreatedAt']||'',
+        updatedAt:     r['UpdatedAt']||'',
+      });
+    });
+    STATE.tagCatalog = catalog;
+  } catch(e) {
+    console.warn('loadTagCatalog failed, falling back to empty catalog:', e.message);
+    STATE.tagCatalog = [];
+  }
+  return STATE.tagCatalog;
+}
+// Read-only lookup: returns the STATE.tagCatalog entry matching tagName's normalized identity, or null.
+// No sheet I/O, no side effects; ignores `active` entirely (P4-R028 — color resolution only).
+function _getTagCatalogEntry(tagName) {
+  if (!tagName || !Array.isArray(STATE.tagCatalog)) return null;
+  const key = _normalizeTagCatalogKey(tagName);
+  if (!key) return null;
+  return STATE.tagCatalog.find(e => e.normalizedKey === key) || null;
+}
+// Validate/normalize a catalog Color cell into a 6-digit '#RRGGBB' string, or null if invalid.
+// Accepts #RGB or #RRGGBB (case-insensitive hex digits) only — no named colors, rgba, or missing '#'.
+function _normalizeTagCatalogColor(raw) {
+  const s = (raw||'').trim();
+  const short = /^#([0-9a-fA-F]{3})$/.exec(s);
+  if (short) {
+    const [r,g,b] = short[1].split('');
+    return '#' + r+r+g+g+b+b;
+  }
+  if (/^#[0-9a-fA-F]{6}$/.test(s)) return s;
+  return null;
+}
+
 // ── SYNC ENGINE ─────────────────────────────────────────────
 let _lastSyncTime = 0;
 let _idleSyncTimer = null;
@@ -6008,6 +6077,7 @@ async function fetchAllSheets() {
       fetchContacts(),
       fetchLocations(),
       fetchPeople(),
+      loadTagCatalog(),
     ]);
     STATE.sheetConnected = true;
     _lastSyncTime = Date.now();
@@ -6947,6 +7017,14 @@ function saveTagColor(tagName, hexColor) {
 function tagColor(tagName) {
   if (!tagName) return { bg:'rgba(40,92,112,0.2)', text:'#4F9AB5', border:'rgba(79,154,181,0.35)' };
   const key = tagName.trim().toLowerCase();
+  // Catalog color takes precedence when present and valid (P4-R028) — `active` is not considered here
+  const catalogEntry = _getTagCatalogEntry(tagName);
+  const catalogColor = catalogEntry ? _normalizeTagCatalogColor(catalogEntry.color) : null;
+  if (catalogColor) {
+    const isDark = isDarkTheme();
+    const alpha = isDark ? '22' : '18';
+    return { bg: catalogColor + alpha, text: catalogColor, border: catalogColor + '55' };
+  }
   // User-defined color takes priority
   if (TAG_CUSTOM[key]) {
     const c = TAG_CUSTOM[key];
@@ -9751,7 +9829,7 @@ function openDayList(dateStr, archiveMode) {
     ${sorted.length > 0 ? `<div style="font-size:11px;color:var(--muted);margin-bottom:12px">${sorted.length} item${sorted.length>1?'s':''} — tap to view details</div>` : ''}
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">${listHTML}</div>
     <div class="modal-actions">
-      
+      ${_backBtn()}
       ${!archiveMode ? `<button class="btn-primary" onclick="clearNav();openTEEModal(null,'entry','${dateStr}')">+ Add Item</button>` : ''}
     </div>`);
 }
@@ -10488,7 +10566,7 @@ function openArchiveDrawer() {
   // Load archive cache if not already fetched
   if (!STATE.archiveCache._fetched && STATE.sheetConnected) {
     openModal(`
-      <div class="modal-title">📦 Task Archive ${_modalCloseBtn()}</div>
+      ${buildModalListHeader('📦', 'Task Archive', 'Loading…')}
       <div style="text-align:center;padding:40px;color:var(--muted)">Loading archive…</div>`);
     // Fetch and re-open once loaded
     const now = new Date();
@@ -10831,19 +10909,26 @@ function renderDirectories() {
   }
 }
 
-function confirmAction(message, confirmLabel, onConfirm, danger=true) {
+function confirmAction(message, confirmLabel, onConfirm, danger=true, onCancel=null) {
   const btnId = 'confirm-action-btn-' + Date.now();
+  const cancelBtnId = 'confirm-action-cancel-btn-' + Date.now();
   openModal(`
     <div style="padding:4px 0 12px">
       <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:10px">Confirm</div>
       <div style="font-size:14px;color:var(--text2);line-height:1.6">${message}</div>
     </div>
     <div class="modal-actions">
-      <button class="btn-ghost" onclick="clearNav()">Cancel</button>
+      <button id="${cancelBtnId}" class="btn-ghost">Cancel</button>
       <button id="${btnId}" style="${danger?'background:rgba(248,113,113,0.12);color:var(--red);border:1px solid rgba(248,113,113,0.35);height:36px;padding:0 16px;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;':''}">
         ${confirmLabel}
       </button>
     </div>`);
+  // P4-R024: Cancel is now a real addEventListener (was a static inline
+  // onclick="clearNav()") so an arbitrary onCancel closure can be preserved
+  // without .toString() serialization — same closure-preserving mechanism
+  // the Confirm button below already uses (since P4-R003d-pre). Callers that
+  // don't pass onCancel keep the exact prior behavior.
+  document.getElementById(cancelBtnId).addEventListener('click', () => { if (onCancel) onCancel(); else clearNav(); });
   document.getElementById(btnId).addEventListener('click', () => { clearNav(); onConfirm(); });
 }
 
@@ -12364,9 +12449,107 @@ function saveTEEModal(existingId, type) {
     .catch(() => toast('Saved locally — sheet will sync next time', 'info'));
 }
 
+// ── P4-R024: TEE Delete confirmation Cancel restoration ────────────────
+// OD-31, discovery basis P4-D037. Captures the exact live, unsaved TEE
+// Add/Edit DOM state before the Delete confirmation opens, so its Cancel
+// button can restore this exact form instead of unwinding the whole modal
+// chain. Conceptually the same two-tier pattern quickAddPersonFromModal/
+// _saveQuickPerson/_restoreTEEModal already prove (Tier 1: values threaded
+// through _renderTEEModal's existing `carried` param via val(); Tier 2:
+// fields _renderTEEModal has no carried path for, reapplied to the DOM
+// after render) — captured/restored independently here, not by reusing or
+// modifying the quick-add-person flow's own carried-state objects. Unlike
+// that flow, Subtasks ARE captured (val('subtasks',[]) already supports it
+// — the omission in quick-add-person is caller-side, not a _renderTEEModal
+// limitation; see P4-D037 §3). Local return value only — nothing here is
+// written to STATE or persisted.
+function _captureTEEModalState() {
+  const subtasks = (() => {
+    const list = document.getElementById('tee-subtask-list');
+    if (!list) return [];
+    return Array.from(list.querySelectorAll('.subtask-row')).map((row, idx) => {
+      const done   = row.querySelector('.subtask-check')?.classList.contains('checked') || false;
+      const doneAt = row.querySelector(`#tee-st-donat-${idx}`)?.value || null;
+      return {
+        text: (row.querySelector(`#tee-st-text-${idx}`)?.value || '').trim(),
+        done,
+        doneAt: done ? doneAt : null,
+      };
+    }).filter(s => s.text);
+  })();
+
+  return {
+    // Tier 1 — shared fields _renderTEEModal already threads through its
+    // `carried` param (read via val()): title/desc/category/tags/notes/
+    // links/subtasks. Mirrors quickAddPersonFromModal's own `carried` shape,
+    // plus subtasks.
+    carried: {
+      title:    document.getElementById('tee-title')?.value    || '',
+      desc:     document.getElementById('tee-desc')?.value     || '',
+      category: document.getElementById('tee-category')?.value || '',
+      tags:     document.getElementById('tee-tags')?.value      || '',
+      notes:    document.getElementById('tee-notes')?.value     || '',
+      links:    _getTeeLinksFromDOM() || [],
+      subtasks: subtasks,
+    },
+    // Tier 2 — fields _buildTEEIdentityFields/_buildTEEDetailsBottom/
+    // _buildTEEAssignFields/_buildTEEContextFields build from `item` only,
+    // with no `carried` path — reapplied to the DOM after render (see
+    // _restoreTEEModalState). `type` is threaded as _renderTEEModal's own
+    // `type` argument (not part of Tier 2's post-render patch), which is
+    // what correctly mounts the right type-specific field zone, including
+    // an in-progress, unsaved type switch.
+    type:      document.getElementById('tee-current-type')?.value || 'task',
+    status:    document.getElementById('tee-status')?.value       || '',
+    priority:  document.getElementById('tee-priority')?.value     || '',
+    dept:      document.getElementById('tee-dept')?.value         || '',
+    project:   document.getElementById('tee-project')?.value      || '',
+    startDate: document.getElementById('tee-startDate')?.value    || '',
+    dueDate:   document.getElementById('tee-dueDate')?.value      || '',
+    date:      document.getElementById('tee-date')?.value         || '',
+    time:      document.getElementById('tee-time')?.value         || '',
+    endTime:   document.getElementById('tee-endTime')?.value      || '',
+    lead:      document.getElementById('tee-lead')?.value         || '',
+    people:    getChipSelections('tee-contributors'),
+  };
+}
+
+// Restores a _captureTEEModalState() snapshot into a freshly (re)rendered
+// TEE Add/Edit form. Does not touch _navStack — this is a direct render
+// call, not a nav-stack operation; the reopen closure already on the stack
+// (pushed by TEE Detail's Edit button, if any) is left completely alone.
+function _restoreTEEModalState(itemId, defaultDate, defaultStatus, captured) {
+  const existingItem = itemId ? STATE.items.find(i => i.id === itemId) : null;
+  _renderTEEModal(existingItem, captured.type || 'task', defaultDate, defaultStatus, captured.carried);
+  // Same timing discipline as _saveQuickPerson/_restoreTEEModal: Tier-2
+  // fields are reapplied after the synchronous render/DOM-insertion
+  // completes, since chip-select elements etc. must already exist.
+  setTimeout(() => {
+    if (captured.status)   { const el = document.getElementById('tee-status');   if (el) { el.value = captured.status;   _syncTEEStatusTrigger(el.value); } }
+    if (captured.priority) { const el = document.getElementById('tee-priority'); if (el) { el.value = captured.priority; _syncTEEPriorityTrigger(el.value); } }
+    const deptEl    = document.getElementById('tee-dept');      if (deptEl)    deptEl.value    = captured.dept    || '';
+    const projectEl = document.getElementById('tee-project');   if (projectEl) projectEl.value = captured.project || '';
+    const startEl   = document.getElementById('tee-startDate'); if (startEl)   startEl.value   = captured.startDate || '';
+    const dueEl     = document.getElementById('tee-dueDate');   if (dueEl)     dueEl.value     = captured.dueDate   || '';
+    const dateEl    = document.getElementById('tee-date');      if (dateEl)    dateEl.value    = captured.date    || '';
+    const timeEl    = document.getElementById('tee-time');      if (timeEl)    timeEl.value    = captured.time    || '';
+    const endTimeEl = document.getElementById('tee-endTime');   if (endTimeEl) endTimeEl.value = captured.endTime || '';
+    const leadEl = document.getElementById('tee-lead');
+    if (leadEl) leadEl.value = captured.lead || '';
+    const people = new Set(captured.people || []);
+    document.querySelectorAll('#tee-contributors .chip-option').forEach(chip => {
+      chip.classList.toggle('selected', people.has(chip.dataset.val));
+    });
+  }, 50);
+}
+
 function deleteTEEItem(id) {
   const item  = STATE.items.find(i => i.id === id);
   const title = item?.title || 'this item';
+  // P4-R024: capture the live, unsaved Add/Edit form state before opening
+  // the confirmation, so Cancel can restore this exact form. _navStack is
+  // untouched by any of this.
+  const captured = _captureTEEModalState();
   confirmAction(
     `"<strong>${title}</strong>" will be permanently deleted. This cannot be undone.`,
     'Delete',
@@ -12374,7 +12557,9 @@ function deleteTEEItem(id) {
       STATE.items = STATE.items.filter(i => i.id !== id);
       clearNav(); renderAll();
       deleteTEE(id).then(() => { toast('Deleted'); triggerSync(); }).catch(() => toast('Removed locally','info'));
-    }
+    },
+    true,
+    () => _restoreTEEModalState(id, '', '', captured)
   );
 }
 
@@ -12432,7 +12617,7 @@ function quickAddPersonFromModal() {
   openModal(`
     <div class="modal-title">
       👤 Add Team Member
-      <button class="modal-close" onclick="_restoreTEEModal('${currentItemId}','${currentType}','${currentDate}','${currentStatus}')">✕</button>
+      ${_modalCloseBtn(`_restoreTEEModal('${currentItemId}','${currentType}','${currentDate}','${currentStatus}')`)}
     </div>
     <div class="form-group">
       <label class="form-label">Full Name *</label>
@@ -12545,19 +12730,48 @@ function _restoreTEEModal(itemId, type, defaultDate, defaultStatus) {
 // ── PEOPLE / TEAM MEMBER MODALS ──────────────────────────────
 // Editing a person's name automatically renames them on all tasks
 // they are assigned to (see savePersonModal).
-function openPersonModal(personId) {
+function openPersonModal(personId, carried=null) {
   const p = personId ? STATE.people.find(x=>x.id===personId) : null;
+  // P4-R025: optional `carried` override for unsaved-state restoration
+  // (Person Remove confirmation Cancel — see removePerson below). Every
+  // pre-existing call site passes only `personId`, so `carried` stays
+  // `null` and `val()` resolves to the exact prior `p?.field||fallback`
+  // behavior, byte-for-byte. When `carried` IS supplied, presence of the
+  // field on `carried` (not truthiness) decides the value — this is what
+  // lets an intentionally blank unsaved value (e.g. a cleared Role) survive
+  // restoration instead of being masked by `||` falling through to the
+  // saved value. Precedence: carried value (if the field is present on
+  // `carried`) > saved Person value > fallback default. The value is fully
+  // HTML-attribute-escaped (&, ", <, > — & first, so newly-created entities
+  // from the other three replacements are never themselves re-escaped) so
+  // it can be safely inserted inside a double-quoted value="..." attribute
+  // — quote-only escaping was insufficient (P4-R025 Patch 1): unescaped `&`
+  // could start a stray/invalid entity and unescaped `<`/`>` could be
+  // misparsed as markup once the browser parses the attribute value. This
+  // applies identically to both the carried and saved paths, so it also
+  // fixes the same pre-existing attribute-injection risk for ordinary saved
+  // data, not just carried data; the browser decodes the entities back to
+  // the original literal characters on read, so `.value` is unaffected —
+  // no displayed or saved value changes.
+  const val = (field, fallback='') => {
+    const raw = (carried && field in carried) ? carried[field] : (p?.[field] ?? fallback);
+    return String(raw)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  };
   openModal(`
     <div class="modal-title">${p?'Edit':'Add'} Team Member ${_modalCloseBtn()}</div>
-    <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" id="pm-name" value="${p?.name||''}" placeholder="Full name"></div>
-    <div class="form-group"><label class="form-label">Role / Title</label><input class="form-input" id="pm-role" value="${p?.role||''}" placeholder="e.g. UI/UX Designer"></div>
-    <div class="form-group"><label class="form-label">Color</label><input class="form-input" type="color" id="pm-color" value="${p?.color||'#285C70'}"></div>
+    <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" id="pm-name" value="${val('name')}" placeholder="Full name"></div>
+    <div class="form-group"><label class="form-label">Role / Title</label><input class="form-input" id="pm-role" value="${val('role')}" placeholder="e.g. UI/UX Designer"></div>
+    <div class="form-group"><label class="form-label">Color</label><input class="form-input" type="color" id="pm-color" value="${val('color','#285C70')}"></div>
     <div class="form-group">
       <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
         Profile Photo URL
         <span style="font-size:10px;color:var(--muted);font-weight:400">direct image link</span>
       </label>
-      <input class="form-input" id="pm-photo" value="${p?.photo||''}" placeholder="https://… or paste a Google Drive share link"
+      <input class="form-input" id="pm-photo" value="${val('photo')}" placeholder="https://… or paste a Google Drive share link"
         oninput="(function(el){
           let v=el.value.trim();
           const m=v.match(/drive\\.google\\.com\\/file\\/d\\/([^/?]+)/);
@@ -12619,6 +12833,20 @@ function savePersonModal(existingId) {
 function removePerson(id) {
   const person = STATE.people.find(x => x.id === id);
   const name   = person?.name || 'this team member';
+  // P4-R025 (OD-31, discovery basis P4-D037): capture the live, unsaved
+  // Person Add/Edit form state before opening the confirmation, so Cancel
+  // can restore this exact form. Person Add/Edit is always top-level and
+  // never on `_navStack` (per P4-D037 §4) — this is a direct re-render via
+  // `openPersonModal(id, captured)`, not a nav-stack operation; `_navStack`
+  // is untouched by any of this. Values are read raw (not `.trim()`ed) so
+  // in-progress whitespace is preserved exactly as typed, matching
+  // savePersonModal's own separate trim-at-save-time behavior.
+  const captured = {
+    name:  document.getElementById('pm-name')?.value  ?? '',
+    role:  document.getElementById('pm-role')?.value  ?? '',
+    color: document.getElementById('pm-color')?.value ?? '',
+    photo: document.getElementById('pm-photo')?.value ?? '',
+  };
   confirmAction(
     `"<strong>${name}</strong>" will be removed from the team. Their tasks will remain but become unassigned.`,
     'Remove',
@@ -12638,7 +12866,9 @@ function removePerson(id) {
       // confirmAction/clearNav behavior are both unchanged.
       clearNav(); renderAll();
       deletePerson(id).then(() => toast('Removed')).catch(() => toast('Removed locally','info'));
-    }
+    },
+    true,
+    () => openPersonModal(id, captured)
   );
 }
 
@@ -12678,7 +12908,7 @@ function openStickyModal(stickyId, prePinned = false) {
   }).join('');
 
   openModal(`
-    <div class="modal-title">${s?'Edit':'Add'} Note <button class="modal-close" onclick="clearNav()">x</button></div>
+    <div class="modal-title">${s?'Edit':'Add'} Note ${_modalCloseBtn()}</div>
     <div class="form-group">
       <label class="form-label">Note Text <span style="font-size:10px;color:var(--muted);font-weight:400">type # to add tags</span></label>
       <div style="position:relative">
@@ -13233,11 +13463,25 @@ function saveDirModal(type, existingId) {
 }
 
 function removeDirItem(type, id) {
-  // confirmAction not used here — removeDirItem already handles its own modal flow
-  if (type==='folder')   { STATE.folders   = STATE.folders.filter(x=>x.id!==id);   deleteFolder(id).catch(()=>{}); }
-  else if (type==='contact')  { STATE.contacts  = STATE.contacts.filter(x=>x.id!==id);  deleteContact(id).catch(()=>{}); }
-  else                        { STATE.locations = STATE.locations.filter(x=>x.id!==id); deleteLocation(id).catch(()=>{}); }
-  renderDirectories(); toast('Removed');
+  // P4-R026 (OD-33, discovery basis P4-D038): converged onto the shared
+  // confirmAction() pattern. Directory Remove is only ever triggered from
+  // the Directories list card (never from inside an open Add/Edit form),
+  // so no unsaved form state can exist at this point — default Cancel
+  // (no onCancel) is correct as-is, matching P4-D038 §8/§9's finding.
+  const label =
+    type === 'folder' ? 'folder' :
+    type === 'contact' ? 'contact' :
+    'location';
+  confirmAction(
+    `This ${label} will be permanently deleted. This cannot be undone.`,
+    'Delete',
+    () => {
+      if (type==='folder')   { STATE.folders   = STATE.folders.filter(x=>x.id!==id);   deleteFolder(id).catch(()=>{}); }
+      else if (type==='contact')  { STATE.contacts  = STATE.contacts.filter(x=>x.id!==id);  deleteContact(id).catch(()=>{}); }
+      else                        { STATE.locations = STATE.locations.filter(x=>x.id!==id); deleteLocation(id).catch(()=>{}); }
+      renderDirectories(); toast('Removed');
+    }
+  );
 }
 
 /* ============================================================
