@@ -1330,6 +1330,306 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .tag-list-body  { flex: 1; min-width: 0; }
 .tag-list-title { font-size: 13px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .tag-list-meta  { font-size: 10px; color: var(--text2); margin-top: 2px; font-family: var(--mono); }
+/* P4-R029: Notes & Resources cards are informational-only (no card-level
+   click, no Edit/delete action) — same "reuse the base row, suppress the
+   clickable affordance" technique already proven by .subtask-row.is-readonly
+   (P4-R013c). Base padding/border/background stay identical to Activity
+   rows for visual consistency; only cursor/hover feedback is suppressed. */
+.tag-list-item.is-readonly { cursor: default; align-items: flex-start; }
+.tag-list-item.is-readonly:hover { background: var(--glass); border-color: var(--border); }
+/* P4-R030 (Stage A, discovery basis P4-D041): the old flat "Activities (N)"/
+   "Notes & Resources (N)" section-header design is replaced by the tab
+   switch below — .tag-list-section-header is no longer emitted by
+   openTagList(), left in place unused rather than removed, matching this
+   project's own established no-opportunistic-cleanup precedent for
+   incidentally-orphaned CSS (e.g. .pdm-tabs/.pdm-tab, .pdm-activity-badge). */
+.tag-list-section-header {
+  font-size: 11px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.6px;
+  margin: 14px 0 6px;
+}
+.tag-list-section-header:first-child { margin-top: 0; }
+
+/* ── Tag Browse Stage A (P4-R030, discovery basis P4-D041) ──────────────────
+   Enlarged tag identity chip, Activities/Notes & Resources tab switch, and
+   Activities/Notes & Resources filter-pill rows. Visual language is modeled
+   on .pdm-view-switch/.pdm-view-btn (two-tab shape) and .pdm-filter-pill
+   (pill shape + tinted-active-state) BY VALUE, not by sharing those classes
+   directly — Tag Browse owns its own .tag-browse-* namespace so a future
+   Person Detail change can never silently affect this modal, and vice versa
+   (the same discipline already used for .pdm-status-* vs. the People page's
+   .person-active-badge). Nothing here modifies any .pdm-* rule. */
+/* P4-R030-fix1 (owner correction 1): the enlarged tag chip is now the
+   modal's header identity itself (Row 1, beside the shared close button),
+   not a separate row below a "Tag Browse" title — .tag-browse-chip-row is
+   no longer emitted by openTagList(), left in place unused rather than
+   removed, matching this project's own no-opportunistic-cleanup precedent
+   (see the .tag-list-section-header note above). .tag-browse-header reuses
+   the existing shared .modal-title class (flex, space-between, close button
+   already right-aligned by that class alone) for Row 1 — buildModalListHeader()
+   itself is not called for Tag Browse and is not modified.
+   P4-R035 (discovery basis P4-D043 §6): the total-count subtitle
+   (.tag-browse-header-sub) is no longer rendered as its own standalone row
+   below Row 1 — openTagList() now places the chip and a new, compact
+   .tag-browse-header-count span together inside one new wrapper,
+   .tag-browse-header-identity, which becomes the first of .modal-title's two
+   flex children (the close button remains the second), so the existing
+   justify-content:space-between rule still keeps Close pinned right with no
+   change to .modal-title itself. .tag-browse-header-sub's CSS rule is left
+   in place, unused, matching this project's established no-opportunistic-
+   cleanup precedent (already applied to .tag-browse-chip-row above). */
+.tag-browse-chip-row { margin: 2px 0 14px; }
+.tag-browse-header { margin-bottom: 14px; }
+.tag-browse-header-sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+.tag-browse-header-identity {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; min-width: 0;
+}
+.tag-browse-header-count { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.tag-browse-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 15px; font-weight: 800; padding: 7px 16px; border-radius: 999px;
+  border: 1px solid transparent; font-family: var(--font);
+  cursor: default; user-select: none; min-width: 0;
+}
+.tag-browse-chip-hash { opacity: 0.55; font-weight: 700; }
+
+.tag-browse-tabs {
+  display: flex; gap: 4px; margin-bottom: 12px; padding: 4px; width: 100%;
+  background: var(--glass); border: 1px solid var(--border); border-radius: 999px;
+  flex-shrink: 0;
+}
+.tag-browse-tab {
+  flex: 1; height: 32px; padding: 0 8px; border-radius: 999px;
+  border: 1px solid transparent; background: transparent; color: var(--text2);
+  font-family: var(--font); font-size: 11px; font-weight: 700; cursor: pointer;
+  transition: all 0.18s; text-align: center; text-transform: uppercase;
+  letter-spacing: 0.03em; display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.tag-browse-tab:hover:not(.disabled) { background: var(--glass2); color: var(--text); }
+.tag-browse-tab.active {
+  background: rgba(40,92,112,0.2); color: var(--accent2);
+  border-color: rgba(40,92,112,0.35); font-weight: 800;
+}
+/* Zero-count tabs are a hard "cannot select" per owner lock (unlike the
+   filter pills below, which stay clickable-but-muted so their own empty
+   states remain reachable) — rendered with a real `disabled` attribute plus
+   this muted style, not just a visual treatment. */
+.tag-browse-tab.disabled { cursor: default; opacity: 0.45; }
+
+.tag-browse-filters { flex-shrink: 0; }
+.tag-browse-filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.tag-browse-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: 20px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--glass);
+  font-size: 11px; font-weight: 600; color: var(--text2);
+  white-space: nowrap; transition: all 0.15s; font-family: var(--font);
+  letter-spacing: 0.02em;
+}
+.tag-browse-pill:hover { background: var(--glass2); color: var(--text); }
+.tag-browse-pill.active {
+  background: rgba(40,92,112,0.2); color: var(--accent2);
+  border-color: rgba(40,92,112,0.35); font-weight: 700;
+}
+/* Zero-count type/category pills stay clickable (per owner wording "may be
+   disabled", softer than the tabs' hard rule above) so the "selected type
+   has zero results" empty states remain directly reachable/testable — only
+   visually muted. */
+.tag-browse-pill.zero { opacity: 0.5; }
+.tag-browse-pill-count { font-size: 10px; font-weight: 800; opacity: 0.85; }
+
+/* P4-R035 (discovery basis P4-D043 §5/§6): values copied BY VALUE from
+   Person Detail LIST's own .pdm-group-divider (font-size/weight/letter-
+   spacing/color/padding/flex layout + the trailing ::after divider line) —
+   not by sharing that class, so Tag Browse remains fully decoupled from
+   Person Detail's own CSS (matching the same discipline already used for
+   .tag-browse-activity-* vs .pdm-activity-*). .pdm-group-divider itself is
+   untouched. Section labels/counts and every call site building this
+   class's markup are unchanged — only the visual treatment converges. */
+.tag-browse-group-header {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--muted); padding: 8px 4px 4px; margin: 4px 0 0;
+  display: flex; align-items: center; gap: 8px;
+}
+.tag-browse-group-header::after { content:''; flex:1; height:1px; background: var(--border); }
+.tag-browse-group-header:first-child { margin-top: 0; padding-top: 0; }
+
+.tag-browse-empty { text-align: center; padding: 24px; color: var(--muted); font-size: 12px; }
+
+/* ── Tag Browse Activity Card (P4-R031-fix1, Stage B correction, discovery
+   basis P4-D041) — the P4-R031 custom four-row card family below was
+   rejected by owner review for not visually matching any established app
+   card format closely enough. Replaced with a Tag-Browse-owned namespace
+   that directly reproduces Person Detail LIST's own actual `.pdm-activity-*`
+   rule values/hierarchy (card shell, 3-row layout, badge placement, role
+   chip, tag/date row) — copied by VALUE, not by sharing the class names, so
+   this remains fully decoupled from Person Detail's own CSS/state/rendering
+   (nothing here modifies any `.pdm-*` or `.gt-*` rule). `.tag-list-item`/
+   `.tag-list-type`/`.tag-list-body`/`.tag-list-title`/`.tag-list-meta`
+   remain live, unchanged, still used by the Sticky/Resource read-only cards
+   below — only Activities stop using them. The prior P4-R031
+   `.tag-browse-activity-identity`/`-type`/`-badges`/`-meta`/`-support`/
+   `-tags` selectors are removed outright (not left as incidental orphans —
+   they were the rejected design's own centerpiece, and their removal is
+   explicitly what this correction is for), while `.tag-browse-activity-row`
+   is kept and reused for the new layout, since its own flex/space-between
+   shape already matches what the Person-Detail-modeled rows need. */
+.tag-browse-activity-card {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 9px 12px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--border); border-left-width: 3px;
+  background: var(--glass); margin-bottom: 6px; transition: all 0.15s;
+}
+.tag-browse-activity-card:hover { background: var(--glassh); border-color: var(--border2); }
+/* Values copied from .pdm-activity-card.is-done / its title rule. */
+.tag-browse-activity-card.is-done { opacity: 0.5; }
+.tag-browse-activity-card.is-done .tag-browse-activity-title { text-decoration: line-through; }
+
+/* Values copied from .pdm-activity-row / .pdm-activity-row-left / -right. */
+.tag-browse-activity-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tag-browse-activity-row-left, .tag-browse-activity-row-right { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; min-width: 0; }
+.tag-browse-activity-row-right { flex-shrink: 0; justify-content: flex-end; }
+
+/* Values copied from .pdm-activity-title (single-line ellipsis, not the
+   prior P4-R031 2-line clamp). */
+.tag-browse-activity-title { font-size: 14px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
+
+/* P4-R031-fix2 (owner correction): the .tag-browse-activity-role/.role-lead/
+   .role-participant selectors introduced by P4-R031-fix1 are removed here —
+   they were this correction's own immediately-preceding, newly-introduced
+   selector set (not pre-existing/unrelated CSS), and are now fully unused
+   following the removal of all person-relative role output from
+   _tagBrowseBuildActivityRow below. Person Detail's own .pdm-activity-role/
+   .role-lead/.role-contrib/.role-participant CSS is untouched. */
+
+/* Values copied from .pdm-activity-date. */
+.tag-browse-activity-date { font-size: 10px; color: var(--text2); font-family: var(--mono); white-space: nowrap; }
+
+/* Values copied from .pdm-activity-chip/.ctx-overdue/.ctx-due-today/
+   .ctx-starts-today — the Row-1-right contextual indicator. */
+.tag-browse-activity-chip { font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 20px; cursor: default; white-space: nowrap; }
+.tag-browse-activity-chip.ctx-overdue      { background: rgba(248,113,113,0.18); color: #F87171;        border: 1px solid rgba(248,113,113,0.35); }
+.tag-browse-activity-chip.ctx-due-today    { background: rgba(40,92,112,0.18);   color: var(--accent2); border: 1px solid rgba(79,154,181,0.35); }
+.tag-browse-activity-chip.ctx-starts-today { background: rgba(52,211,153,0.15);  color: #34D399;        border: 1px solid rgba(52,211,153,0.35); }
+
+/* Narrow/mobile: top-row content wraps rather than clipping; one-column
+   cards and tag wrapping already hold without further override. */
+@media (max-width: 479px) {
+  .tag-browse-activity-row { flex-wrap: wrap; }
+  .tag-browse-activity-row-right { justify-content: flex-start; }
+}
+
+/* Narrow/mobile: filter-pill rows scroll horizontally instead of wrapping
+   into multiple tall rows, reusing the exact proven technique already used
+   by Today/Overview's own .gt-subpill-strip (flex-wrap:nowrap +
+   overflow-x:auto + hidden scrollbar) — not a new invention, and scoped only
+   to Tag Browse's own filter rows. Tabs need no mobile override at all: two
+   flex:1 buttons already stay equal-width and never wrap. Cards are already
+   single-column block rows (.tag-list-item), needing no mobile change. */
+@media (max-width: 479px) {
+  .tag-browse-filter-row {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .tag-browse-filter-row::-webkit-scrollbar { display: none; }
+  .tag-browse-pill { flex-shrink: 0; }
+}
+
+/* ── Tag Browse Notes & Resources Card (P4-R033, discovery basis P4-D042;
+   left-accent removed and description-typography corrected by P4-R033-fix1
+   per owner review) ───────────────────────────────────────────────────────
+   Dedicated Tag-Browse-owned namespace for the Sticky/Folder/Contact/Location
+   read-only cards — sized/spaced to match .tag-browse-activity-card's own
+   density (copied by value: same padding, border-radius, margin-bottom) so
+   Activities and Notes & Resources read as one coherent compact list. Does
+   not modify, share, or depend on .dir-*, .reminder-*, .pdm-*, .gt-card*, or
+   .tag-browse-activity-* rules — those remain fully untouched (Activity
+   cards keep their own left-accent priority stripe unchanged; the removal
+   below applies only to this Notes & Resources namespace). .tag-list-item/
+   .tag-list-type/.tag-list-body/.tag-list-title/.tag-list-meta (the
+   pre-P4-R033 Notes & Resources row classes) remain unused by this stage's
+   cards; left in place unmodified, matching this project's established
+   no-opportunistic-cleanup precedent (already applied to
+   .tag-list-section-header, .tag-browse-chip-row, TAG_BROWSE_TYPE_ICON). */
+.tag-browse-resource-card {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 9px 12px; border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--glass); margin-bottom: 6px; transition: all 0.15s;
+  cursor: default;
+}
+.tag-browse-resource-card:hover { background: var(--glassh); border-color: var(--border2); }
+
+.tag-browse-resource-header { display: flex; align-items: center; gap: 6px; }
+.tag-browse-resource-icon { font-size: 15px; flex-shrink: 0; color: var(--accent2); }
+.tag-browse-resource-title {
+  font-size: 14px; font-weight: 700; overflow: hidden;
+  white-space: nowrap; text-overflow: ellipsis; min-width: 0; flex: 1;
+}
+.tag-browse-resource-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto; }
+/* Values copied from .dir-card-action-link (Directory's own existing
+   Open/Call/Email/Map affordance) — same visual shape, own namespace;
+   .dir-card-action-link itself is untouched. */
+.tag-browse-resource-action {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; color: var(--accent2); text-decoration: none;
+  padding: 3px 9px; border-radius: 8px;
+  background: var(--glass2); border: 1px solid var(--border);
+  white-space: nowrap; transition: background 0.15s; font-family: var(--font);
+}
+.tag-browse-resource-action:hover { background: var(--glassh); }
+.tag-browse-resource-action:focus-visible { outline: 2px solid var(--accent2); outline-offset: 1px; }
+/* P4-R035 (discovery basis P4-D043 §11): Sticky's own Pin/Unpin action reuses
+   .tag-browse-resource-action's shell, but that base rule's fixed
+   var(--accent2)/var(--glass2) colors were tuned for the neutral card
+   background every other card type uses — Sticky cards are colored via
+   inline style (getStickyColor), so the action button instead inherits the
+   card's own text color and uses a translucent dark overlay, matching the
+   same "color: inherit" override already established for the Notes
+   More/Less toggle immediately below. */
+.tag-browse-resource-card.is-sticky-note .tag-browse-resource-action {
+  color: inherit; background: rgba(0,0,0,0.14); border-color: rgba(0,0,0,0.18);
+}
+.tag-browse-resource-card.is-sticky-note .tag-browse-resource-action:hover { background: rgba(0,0,0,0.24); }
+
+.tag-browse-resource-meta { font-size: 11px; color: var(--text2); line-height: 1.4; }
+.tag-browse-resource-body { display: flex; flex-direction: column; gap: 2px; }
+/* P4-R033-fix1 (owner correction B): collapsed clamp is now exactly 2 lines
+   (was 3) — actual overflow is measured post-render by
+   _tagBrowseInitClampOverflow, not inferred from character count. */
+.tag-browse-resource-notes {
+  font-size: 12px; color: var(--text2); line-height: 1.5;
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; overflow: hidden;
+}
+.tag-browse-resource-card.is-sticky-note .tag-browse-resource-notes { color: inherit; font-size: 12px; }
+.tag-browse-resource-notes.is-expanded { display: block; overflow: visible; -webkit-line-clamp: unset; }
+/* P4-R033-fix1: the toggle is always present in markup when its text field
+   is non-blank, but starts `[hidden]` (native UA display:none, no CSS rule
+   needed here) — _tagBrowseInitClampOverflow reveals it only when the
+   sibling .tag-browse-resource-notes element actually overflows its
+   2-line clamp. */
+.tag-browse-resource-toggle {
+  align-self: flex-start; font-size: 10px; font-weight: 700; cursor: pointer;
+  background: none; border: none; padding: 0; color: var(--accent2);
+  font-family: var(--font); opacity: 0.8; transition: opacity 0.15s;
+}
+.tag-browse-resource-toggle:hover { opacity: 1; }
+.tag-browse-resource-toggle:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; border-radius: 3px; }
+.tag-browse-resource-card.is-sticky-note .tag-browse-resource-toggle { color: inherit; }
+
+.tag-browse-resource-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.tag-browse-resource-tags { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; min-width: 0; }
+.tag-browse-resource-due { font-size: 10px; color: var(--text2); font-family: var(--mono); white-space: nowrap; flex-shrink: 0; }
+
+/* Narrow/mobile: header wraps so a long title never crushes the action
+   group; actions drop to their own full-width row instead of squeezing —
+   same technique already established for .tag-browse-activity-row/-right. */
+@media (max-width: 479px) {
+  .tag-browse-resource-header { flex-wrap: wrap; }
+  .tag-browse-resource-actions { justify-content: flex-start; width: 100%; }
+  .tag-browse-resource-footer { flex-wrap: wrap; }
+}
 
 /* ============================================================
    SUBTASKS
@@ -1942,6 +2242,59 @@ h1,h2,h3,h4,.section-title,.page-title,.h2-title,.sidebar-brand,
 .dir-add-btn { background: var(--glass); backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm); border: 1px dashed var(--border2); flex-shrink: 0; border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; color: var(--text2); font-size: 12px; min-height: 145px; transition: all 0.2s; }
 .dir-add-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(40,92,112,0.07); }
 .dir-add-btn .plus { font-size: 26px; color: var(--accent); }
+
+/* ── Directory Tags Chip-Entry (P4-R036, discovery basis P4-D044) ──────────
+   Dedicated .dir-tag-* namespace, values copied BY VALUE from the proven
+   .tee-tag-* rules (TEE Add/Edit Tags, P4-R010/-fix1/-fix3) — never sharing
+   those selectors directly, never modifying them, matching this project's
+   own established "copy by value, own namespace" discipline (e.g.
+   .tag-browse-activity-* vs .pdm-activity-*). #df-tags stays the single
+   save-time hidden value-holder saveDirModal's existing, unmodified
+   _parseTags(...) already reads — no parser, save path, or Sheets contract
+   change. Suggestions are a small popover anchored under the input via
+   plain CSS (position:absolute relative to .dir-tag-input-wrap), not a
+   caret-position mirror popup (Sticky's own, unrelated, unmodified
+   pattern). No @media override is added here — Directory's Add/Edit modal
+   already goes full-bleed at <=479px via the existing generic .modal rule,
+   and live testing found no collision requiring one (P4-D044 §14). */
+/* P4-R036-fix1: TEE's own 10px input-to-chip-row gap comes entirely from
+   its parent .tee-field-group's `gap:10px` (flex-direction:column) — .tee-
+   tag-chips itself has no margin. Directory's Tags field instead sits
+   inside plain .form-group (block-level, no flex, no gap property), so
+   .dir-tag-input-wrap and .dir-tag-chips previously stacked flush with
+   zero space between them. Adding the same 10px directly on .dir-tag-chips
+   (the only element that needed it) reproduces TEE's effective spacing
+   without touching .form-group — which is shared by every other Directory
+   field — or any TEE/.tee-tag-* rule. */
+.dir-tag-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 28px; margin-top: 10px; }
+.dir-tag-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  border: 1px solid; white-space: nowrap;
+}
+.dir-tag-chip-remove {
+  background: none; border: none; cursor: pointer; padding: 0;
+  font-size: 12px; font-weight: 700; line-height: 1; color: inherit; opacity: 0.7;
+}
+.dir-tag-chip-remove:hover { opacity: 1; }
+.dir-tag-empty { font-size: 11px; color: var(--muted); }
+.dir-tag-input-wrap { position: relative; flex: 1; min-width: 0; }
+.dir-tag-input { width: 100%; }
+.dir-tag-suggestions {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  flex-wrap: wrap; gap: 6px; padding: 8px; z-index: 20;
+  background: var(--glass2); backdrop-filter: var(--blur); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+.dir-tag-suggestions.dir-tag-suggestions-open { display: flex; }
+.dir-tag-suggestion {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  color: var(--text2); background: var(--glass); border: 1px solid var(--border2);
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.dir-tag-suggestion:hover { background: var(--bg2); color: var(--text); }
+.dir-tag-suggestion-create { font-style: italic; color: var(--accent2); }
 
 
 /* Float mode toggle switch */
@@ -4196,6 +4549,8 @@ const STATE = {
   dirSort:          'az',
   sheetConnected:   false,
   tagCatalog:       [],  // loaded from CONFIG.SHEETS.tags — additive metadata only, never authoritative for record-level tags (P4-R027)
+  tagsMgmtFilter:   'all',   // Resources > Tags read-only index filter (P4-R037): 'all'|'inuse'|'notused'|'active'|'inactive'
+  tagsMgmtSort:     'az',    // Resources > Tags read-only index sort (P4-R037): 'az'|'most'|'newest'
 
   // ── Planner state ──────────────────────────────────────────────────
   plannerView:      'month',   // 'month' | 'week' | 'day'
@@ -5061,9 +5416,13 @@ function _pdmBuildScheduleCard(item, personId, primaryFilter, stateFilter, dayOf
   // _pdmList's own LIST cards already use (P4-R016b) — extended with the
   // 'schedule'/dayOffset arguments so Back from Tag List returns to this
   // same Schedule date, not just LIST.
+  // P4-R034 (Stage D): pass this Schedule card's own item context so a
+  // nested Tag Browse opens pre-scoped to it; Person Detail's own reopen
+  // closure (openPersonDetailModal(...)) is unchanged.
+  const _tbCtxExpr = _tagBrowseContextExpr(_tagBrowseContextForRecord(item, item.type));
   const tagChips = (item.tags||[]).slice(0,2).map(tag => {
     const tc = tagColor(tag);
-    return `<span class="pdm-activity-tag clickable" style="background:${tc.bg};color:${tc.text};border:1px solid ${tc.border}" onclick="event.stopPropagation();_navTo(()=>openPersonDetailModal('${personId}','${primaryFilter}','${stateFilter}','schedule',${dayOffset},'${filtersStr}'),()=>openTagList('${tag}'))"><span style="opacity:0.5">#</span>${tag}</span>`;
+    return `<span class="pdm-activity-tag clickable" style="background:${tc.bg};color:${tc.text};border:1px solid ${tc.border}" onclick="event.stopPropagation();_navTo(()=>openPersonDetailModal('${personId}','${primaryFilter}','${stateFilter}','schedule',${dayOffset},'${filtersStr}'),()=>openTagList('${tag}', ${_tbCtxExpr}))"><span style="opacity:0.5">#</span>${tag}</span>`;
   }).join('');
 
   const subtaskChip = _subtaskChip(item);
@@ -5462,9 +5821,13 @@ function _pdmList(personId, primaryFilter, stateFilter) {
     // modifier class, so the existing `.pdm-activity-tag` base rule (and any
     // future non-clickable use of it) stays byte-identical — only the new
     // `.pdm-activity-tag.clickable` rule below adds pointer/hover feedback.
+    // P4-R034 (Stage D): pass this LIST card's own item context so a nested
+    // Tag Browse opens pre-scoped to it; Person Detail's own reopen closure
+    // (openPersonDetailModal(...)) is unchanged.
+    const _tbCtxExpr = _tagBrowseContextExpr(_tagBrowseContextForRecord(item, item.type));
     const tagChips = (item.tags||[]).slice(0,2).map(tag => {
       const tc = tagColor(tag);
-      return `<span class="pdm-activity-tag clickable" style="background:${tc.bg};color:${tc.text};border:1px solid ${tc.border}" onclick="event.stopPropagation();_navTo(()=>openPersonDetailModal('${personId}','${primaryFilter}','${stateFilter}'),()=>openTagList('${tag}'))"><span style="opacity:0.5">#</span>${tag}</span>`;
+      return `<span class="pdm-activity-tag clickable" style="background:${tc.bg};color:${tc.text};border:1px solid ${tc.border}" onclick="event.stopPropagation();_navTo(()=>openPersonDetailModal('${personId}','${primaryFilter}','${stateFilter}'),()=>openTagList('${tag}', ${_tbCtxExpr}))"><span style="opacity:0.5">#</span>${tag}</span>`;
     }).join('');
 
     // Row 1 right: subtask count — P4-R016a (discovery basis P4-D027):
@@ -5622,11 +5985,22 @@ function _pdmList(personId, primaryFilter, stateFilter) {
 const API = CONFIG.SHEET_URL;
 const hasAPI = () => API && !API.includes('YOUR_');
 
+async function _parseSheetResponse(res, label) {
+  if (!res.ok) throw new Error(`${label} failed: HTTP ${res.status}`);
+  let json;
+  try {
+    json = await res.json();
+  } catch (e) {
+    throw new Error(`${label} failed: non-JSON response (status ${res.status})`);
+  }
+  if (!json.ok) throw new Error(json.error || `${label} failed`);
+  return json;
+}
+
 async function sheetGetAll(sheetName) {
   const url = `${API}?action=getAll&sheet=${encodeURIComponent(sheetName)}`;
   const res  = await fetch(url);
-  const json = await res.json();
-  if (!json.ok) throw new Error(json.error || 'Fetch failed');
+  const json = await _parseSheetResponse(res, 'Fetch');
   return json.data || [];
 }
 async function sheetUpsert(sheetName, data) {
@@ -5635,9 +6009,7 @@ async function sheetUpsert(sheetName, data) {
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action:'upsert', sheet:sheetName, data }),
   });
-  const json = await res.json();
-  if (!json.ok) throw new Error(json.error || 'Upsert failed');
-  return json;
+  return _parseSheetResponse(res, 'Upsert');
 }
 async function sheetDelete(sheetName, id) {
   const res = await fetch(API, {
@@ -5645,9 +6017,7 @@ async function sheetDelete(sheetName, id) {
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action:'delete', sheet:sheetName, id }),
   });
-  const json = await res.json();
-  if (!json.ok) throw new Error(json.error || 'Delete failed');
-  return json;
+  return _parseSheetResponse(res, 'Delete');
 }
 
 /* ─── UNIFIED TEE (Tasks / Events / Entries) ─── */
@@ -5699,7 +6069,7 @@ async function fetchTEE() {
 }
 
 async function saveTEE(item) {
-  if (!STATE.sheetConnected) return;
+  if (!STATE.sheetConnected) throw new Error('Not connected — save skipped');
   // Build the row — only populate fields that belong to this type
   const isTask  = item.type === 'task';
   const isEvent = item.type === 'event';
@@ -5741,7 +6111,7 @@ async function saveTEE(item) {
 }
 
 async function deleteTEE(id) {
-  if (!STATE.sheetConnected) return;
+  if (!STATE.sheetConnected) throw new Error('Not connected — delete skipped');
   await sheetDelete(CONFIG.SHEETS.tee, id);
 }
 
@@ -5893,7 +6263,7 @@ async function fetchStickies() {
   })).filter(r=>r.id);
 }
 async function saveSticky(s) {
-  if (!STATE.sheetConnected) return;
+  if (!STATE.sheetConnected) throw new Error('Not connected — save skipped');
   await sheetUpsert(CONFIG.SHEETS.stickies, {
     'ID':       s.id,
     'Text':     s.text,
@@ -5911,7 +6281,7 @@ async function saveSticky(s) {
 }
 
 async function saveStickyArchiveItem(s) {
-  if (!STATE.sheetConnected) return;
+  if (!STATE.sheetConnected) throw new Error('Not connected — save skipped');
   const now = new Date();
   const ts  = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
              +' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
@@ -5932,7 +6302,7 @@ async function saveStickyArchiveItem(s) {
     'ArchivedBy': 'manual',
   });
 }
-async function deleteSticky(id) { if (!STATE.sheetConnected) return; await sheetDelete(CONFIG.SHEETS.stickies, id); }
+async function deleteSticky(id) { if (!STATE.sheetConnected) throw new Error('Not connected — delete skipped'); await sheetDelete(CONFIG.SHEETS.stickies, id); }
 
 // ── DIRECTORIES: Folders, Contacts, Locations, People ───────
 async function fetchFolders() {
@@ -5940,20 +6310,20 @@ async function fetchFolders() {
   STATE.folders = rows.map(r => ({ id:r['ID']||'', name:r['Name']||'', url:r['URL']||'', desc:r['Description']||'', tags:parseTagList(r['Tags']) })).filter(r=>r.id);
 }
 async function saveFolder(f) {
-  if (!STATE.sheetConnected) return;
+  if (!STATE.sheetConnected) throw new Error('Not connected — save skipped');
   await sheetUpsert(CONFIG.SHEETS.folders, {
     'ID':f.id, 'Name':f.name, 'URL':f.url,
     'Description':f.desc, 'Tags':(f.tags||[]).join('|'),
   });
 }
-async function deleteFolder(id) { if (!STATE.sheetConnected) return; await sheetDelete(CONFIG.SHEETS.folders, id); }
+async function deleteFolder(id) { if (!STATE.sheetConnected) throw new Error('Not connected — delete skipped'); await sheetDelete(CONFIG.SHEETS.folders, id); }
 
 async function fetchContacts() {
   const rows = await sheetGetAll(CONFIG.SHEETS.contacts);
   STATE.contacts = rows.map(r => ({ id:r['ID']||'', name:r['Name']||'', position:r['Position']||'', phone:r['Phone']||'', email:r['Email']||'', company:r['Company']||'', notes:r['Notes']||'', tags:parseTagList(r['Tags']) })).filter(r=>r.id);
 }
 async function saveContact(c) {
-  if (!STATE.sheetConnected) return;
+  if (!STATE.sheetConnected) throw new Error('Not connected — save skipped');
   await sheetUpsert(CONFIG.SHEETS.contacts, {
     'ID':c.id, 'Name':c.name, 'Position':c.position,
     'Phone':c.phone, 'Email':c.email,
@@ -5961,14 +6331,14 @@ async function saveContact(c) {
     'Tags':(c.tags||[]).join('|'),
   });
 }
-async function deleteContact(id) { if (!STATE.sheetConnected) return; await sheetDelete(CONFIG.SHEETS.contacts, id); }
+async function deleteContact(id) { if (!STATE.sheetConnected) throw new Error('Not connected — delete skipped'); await sheetDelete(CONFIG.SHEETS.contacts, id); }
 
 async function fetchLocations() {
   const rows = await sheetGetAll(CONFIG.SHEETS.locations);
   STATE.locations = rows.map(r => ({ id:r['ID']||uid('L'), name:r['Name']||'', address:r['Address']||'', mapUrl:r['MapURL']||'', notes:r['Notes']||'', company:r['Company']||'', phone:r['Phone']||'', tags:parseTagList(r['Tags']) })).filter(r=>r.name);
 }
 async function saveLocation(l) {
-  if (!STATE.sheetConnected) return;
+  if (!STATE.sheetConnected) throw new Error('Not connected — save skipped');
   await sheetUpsert(CONFIG.SHEETS.locations, {
     'ID':l.id, 'Name':l.name, 'Address':l.address,
     'MapURL':l.mapUrl, 'Notes':l.notes,
@@ -5976,22 +6346,22 @@ async function saveLocation(l) {
     'Tags':(l.tags||[]).join('|'),
   });
 }
-async function deleteLocation(id) { if (!STATE.sheetConnected) return; await sheetDelete(CONFIG.SHEETS.locations, id); }
+async function deleteLocation(id) { if (!STATE.sheetConnected) throw new Error('Not connected — delete skipped'); await sheetDelete(CONFIG.SHEETS.locations, id); }
 
 async function fetchPeople() {
   const rows = await sheetGetAll(CONFIG.SHEETS.people);
   if (rows.length) STATE.people = rows.map(r => ({ id:r['ID']||'', name:r['Name']||'', role:r['Role']||'', color:r['Color']||'#285C70', photo:r['Photo']||'' })).filter(r=>r.id);
 }
 async function savePerson(p) {
-  if (!STATE.sheetConnected) return;
+  if (!STATE.sheetConnected) throw new Error('Not connected — save skipped');
   await sheetUpsert(CONFIG.SHEETS.people, {'ID':p.id,'Name':p.name,'Role':p.role,'Color':p.color,'Photo':p.photo||''});
 }
-async function deletePerson(id) { if (!STATE.sheetConnected) return; await sheetDelete(CONFIG.SHEETS.people, id); }
+async function deletePerson(id) { if (!STATE.sheetConnected) throw new Error('Not connected — delete skipped'); await sheetDelete(CONFIG.SHEETS.people, id); }
 
 // ── TAGS CATALOG (read-only, additive metadata — P4-R027) ────
 // Normalize a raw NormalizedKey/Tag cell into the catalog's comparison key: trim, strip one leading '#', trim, lowercase
 function _normalizeTagCatalogKey(raw) {
-  return (raw||'').trim().replace(/^#/,'').trim().toLowerCase();
+  return String(raw ?? '').trim().replace(/^#/,'').trim().toLowerCase();
 }
 // Interpret a sheet "Active" cell; blank/missing defaults to TRUE (keeps manually added rows active unless explicitly set FALSE)
 function _parseTagCatalogActive(raw) {
@@ -6008,7 +6378,7 @@ async function loadTagCatalog() {
     const seen = new Set();
     const catalog = [];
     (rows||[]).forEach(r => {
-      const tag = (r['Tag']||'').trim();
+      const tag = String(r['Tag'] ?? '').trim();
       if (!tag) return;
       let normalizedKey = _normalizeTagCatalogKey(r['NormalizedKey']);
       if (!normalizedKey) normalizedKey = _normalizeTagCatalogKey(tag);
@@ -6021,7 +6391,7 @@ async function loadTagCatalog() {
       catalog.push({
         tag:           tag,
         normalizedKey: normalizedKey,
-        color:         (r['Color']||'').trim(),
+        color:         String(r['Color'] ?? '').trim(),
         active:        _parseTagCatalogActive(r['Active']),
         createdAt:     r['CreatedAt']||'',
         updatedAt:     r['UpdatedAt']||'',
@@ -6045,7 +6415,7 @@ function _getTagCatalogEntry(tagName) {
 // Validate/normalize a catalog Color cell into a 6-digit '#RRGGBB' string, or null if invalid.
 // Accepts #RGB or #RRGGBB (case-insensitive hex digits) only — no named colors, rgba, or missing '#'.
 function _normalizeTagCatalogColor(raw) {
-  const s = (raw||'').trim();
+  const s = String(raw ?? '').trim();
   const short = /^#([0-9a-fA-F]{3})$/.exec(s);
   if (short) {
     const [r,g,b] = short[1].split('');
@@ -6053,6 +6423,149 @@ function _normalizeTagCatalogColor(raw) {
   }
   if (/^#[0-9a-fA-F]{6}$/.test(s)) return s;
   return null;
+}
+
+// P4-R038 — Tags catalog persistence foundation (Stage A only, discovery
+// basis P4-D046). NOT wired into any save path yet (Stage B) — this function
+// has no call site anywhere in this file; it exists only for manual,
+// owner-driven invocation during controlled verification.
+//
+// Ensures exactly one Tags-sheet row exists for rawTag's normalized identity.
+// Write-preflight is a FRESH, direct read of the live sheet (never
+// STATE.tagCatalog / _getTagCatalogEntry alone) because STATE.tagCatalog can
+// be stale and the backend's upsert performs a full-row replacement on every
+// write (P4-D046 §8 finding 2, §21). Does not use loadTagCatalog() for this
+// check — its own catch-and-fallback-to-[] would make a genuine read failure
+// indistinguishable from a genuinely empty catalog.
+//
+// Resolves to exactly one of:
+//   'invalid/empty' | 'already exists' | 'created' | 'read failure' | 'write failure'
+async function registerTagIfNew(rawTag) {
+  const normalizedKey = _normalizeTagCatalogKey(rawTag);
+  if (!normalizedKey) return 'invalid/empty';
+
+  let rows;
+  try {
+    rows = await sheetGetAll(CONFIG.SHEETS.tags);
+  } catch (e) {
+    console.warn('registerTagIfNew: preflight read failed —', e.message);
+    return 'read failure';
+  }
+
+  // Derive each row's normalized key the same way loadTagCatalog() does:
+  // skip rows with a blank Tag, else NormalizedKey-or-derived-from-Tag.
+  const exists = (rows || []).some(r => {
+    const tag = String(r['Tag'] ?? '').trim();
+    if (!tag) return false;
+    let k = _normalizeTagCatalogKey(r['NormalizedKey']);
+    if (!k) k = _normalizeTagCatalogKey(tag);
+    return k === normalizedKey;
+  });
+  if (exists) return 'already exists';
+
+  const now = new Date();
+  const ts  = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
+             +' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+
+  try {
+    await sheetUpsert(CONFIG.SHEETS.tags, {
+      'NormalizedKey': normalizedKey,
+      'Tag':           rawTag,
+      'Color':         '',
+      'Active':        'TRUE',
+      'CreatedAt':     ts,
+      'UpdatedAt':     ts,
+    });
+  } catch (e) {
+    console.warn('registerTagIfNew: write failed —', e.message);
+    return 'write failure';
+  }
+
+  // Only reached after sheetUpsert has actually succeeded — 'created' is
+  // never resolved before the write settles.
+  STATE.tagCatalog.push({
+    tag:           rawTag,
+    normalizedKey: normalizedKey,
+    color:         '',
+    active:        true,
+    createdAt:     ts,
+    updatedAt:     ts,
+  });
+  return 'created';
+}
+
+// P4-R039 — Tags Automatic Registration Stage B1 (TEE only, discovery basis
+// P4-D047). Bounded multi-tag orchestrator: performs exactly ONE fresh
+// Tags-sheet read per call (never once per tag), writes only genuinely
+// missing keys, and never touches an existing row's metadata. Does NOT
+// call registerTagIfNew and does NOT use STATE.tagCatalog/_getTagCatalogEntry
+// as its existence check, for the same staleness reason documented on
+// registerTagIfNew itself (P4-D046 §8/§21) — registerTagIfNew is left
+// byte-identical and unmodified; this function duplicates only the small,
+// local, read-only row-key derivation it needs, inline.
+//
+// Never throws to its caller — every failure path is caught and logged
+// internally (console.warn only, per owner lock: a registration failure
+// must never surface as, or affect, a parent record-save failure).
+async function ensureTagsRegistered(tagList) {
+  // Normalize + case-insensitively dedupe, keeping first-encountered casing.
+  const wanted = new Map();
+  (tagList || []).forEach(raw => {
+    const key = _normalizeTagCatalogKey(raw);
+    if (!key) return;
+    if (!wanted.has(key)) wanted.set(key, raw);
+  });
+  if (wanted.size === 0) return;
+
+  let rows;
+  try {
+    rows = await sheetGetAll(CONFIG.SHEETS.tags);
+  } catch (e) {
+    console.warn('ensureTagsRegistered: preflight read failed —', e.message);
+    return;
+  }
+
+  // Local, inline row-key derivation — same logic loadTagCatalog()/
+  // registerTagIfNew each already contain independently; not extracted.
+  const existingKeys = new Set();
+  (rows || []).forEach(r => {
+    const tag = String(r['Tag'] ?? '').trim();
+    if (!tag) return;
+    let k = _normalizeTagCatalogKey(r['NormalizedKey']);
+    if (!k) k = _normalizeTagCatalogKey(tag);
+    if (k) existingKeys.add(k);
+  });
+
+  const missing = [...wanted.entries()].filter(([key]) => !existingKeys.has(key));
+  if (missing.length === 0) return;
+
+  const now = new Date();
+  const ts  = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
+             +' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+
+  await Promise.all(missing.map(async ([normalizedKey, rawTag]) => {
+    try {
+      await sheetUpsert(CONFIG.SHEETS.tags, {
+        'NormalizedKey': normalizedKey,
+        'Tag':           rawTag,
+        'Color':         '',
+        'Active':        'TRUE',
+        'CreatedAt':     ts,
+        'UpdatedAt':     ts,
+      });
+    } catch (e) {
+      console.warn('ensureTagsRegistered: write failed for', normalizedKey, '—', e.message);
+      return;
+    }
+    STATE.tagCatalog.push({
+      tag:           rawTag,
+      normalizedKey: normalizedKey,
+      color:         '',
+      active:        true,
+      createdAt:     ts,
+      updatedAt:     ts,
+    });
+  }));
 }
 
 // ── SYNC ENGINE ─────────────────────────────────────────────
@@ -6498,20 +7011,37 @@ function _buildTypeBadge(type) {
   return `<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;background:${tbc.bg};color:${tbc.text};border:1px solid ${tbc.text}33">${label}</span>`;
 }
 
-// Tag chip — clickable, opens tag list
-function _buildTagChip(tag) {
+// Tag chip — clickable, opens tag list.
+// P4-R034 (Stage D, discovery basis P4-D041 §17): gained an optional
+// browseContext parameter so Tag Browse can open source-aware, pre-scoped to
+// this tag's own containing record's context — existing 1-argument callers
+// remain valid by default-parameter semantics (browseContext defaults to
+// null, which _tagBrowseContextExpr/openTagList's own normalizer both
+// resolve to today's exact prior fallback behavior). browseContext is turned
+// into a safe, allow-listed inline expression by _tagBrowseContextExpr
+// (defined later in the Tag Browse section; called here only after the
+// script's own top-level execution has already defined it — see that
+// function's own comment) before being spliced into the onclick attribute —
+// never the raw object, never any record-derived text.
+function _buildTagChip(tag, browseContext = null) {
   const tc = tagColor(tag);
-  return `<button class="tag-btn gt-tag" style="background:${tc.bg};color:${tc.text};border-color:${tc.border}" onclick="event.stopPropagation();openTagList('${tag}')"><span style="opacity:0.5">#</span>${tag}</button>`;
+  const ctxExpr = _tagBrowseContextExpr(browseContext);
+  return `<button class="tag-btn gt-tag" style="background:${tc.bg};color:${tc.text};border-color:${tc.border}" onclick="event.stopPropagation();openTagList('${tag}', ${ctxExpr})"><span style="opacity:0.5">#</span>${tag}</button>`;
 }
 // Detail-modal tag row — renders the Tags detail-row for item detail modals.
 // reopenExpr: string expression that reopens the current modal, e.g. "openTEEDetail('T-001')"
 // Used by openTEEDetail().
-function _buildDetailTagRow(tags, reopenExpr) {
+// P4-R034: gained the same optional browseContext parameter as _buildTagChip
+// above, for the same reason — its one existing 2-argument caller
+// (openTEEDetail) remains valid without passing it; browseContext defaults
+// to null.
+function _buildDetailTagRow(tags, reopenExpr, browseContext = null) {
   const tagArr = Array.isArray(tags) ? tags : (tags||'').split(',').map(t=>t.trim()).filter(Boolean);
   if (!tagArr.length) return '';
+  const ctxExpr = _tagBrowseContextExpr(browseContext);
   const tagBtns = tagArr.map(t => {
     const tc = tagColor(t);
-    return `<button class="tag-btn" style="background:${tc.bg};color:${tc.text};border-color:${tc.border}" onclick="_navTo(()=>${reopenExpr},()=>openTagList('${t}'))" title="View all #${t} items"><span style="opacity:0.5">#</span>${t}</button>`;
+    return `<button class="tag-btn" style="background:${tc.bg};color:${tc.text};border-color:${tc.border}" onclick="_navTo(()=>${reopenExpr},()=>openTagList('${t}', ${ctxExpr}))" title="View all #${t} items"><span style="opacity:0.5">#</span>${t}</button>`;
   }).join(' ');
   return `<div class="detail-row"><span class="detail-label">Tags</span><span class="detail-value" style="display:flex;flex-wrap:wrap;gap:4px">${tagBtns}</span></div>`;
 }
@@ -7234,7 +7764,7 @@ function changeItemStatus(taskId, newStatus) {
     task.status = newStatus === 'Done' ? `Done|${ts}` : newStatus;
   }
 
-  saveTEE(task).catch(() => toast('Save failed', 'error'));
+  const p = saveTEE(task);
 
   // Update any open status button in place
   const _newDot = getStatusColor(newStatus);
@@ -7251,7 +7781,12 @@ function changeItemStatus(taskId, newStatus) {
   // display-only in this checkpoint; this hook is wired now so P4-R016d
   // (Status chip parity) needs no further changes here.
   _pdmRefreshIfOpen();
-  toast(`Status → ${newStatus}`, 'success');
+  // P4-R032 (Stage C, discovery basis P4-D041): same pattern as
+  // _pdmRefreshIfOpen immediately above — refresh Tag Browse in place if
+  // it's currently open, a no-op otherwise (see _tagBrowseRefreshIfOpen's
+  // own comment for the full guard/safety rationale).
+  _tagBrowseRefreshIfOpen();
+  p.then(() => toast(`Status → ${newStatus}`, 'success')).catch(() => toast('Save failed', 'error'));
 }
 // Keep old name as alias for any remaining references
 const changeTaskStatus = changeItemStatus;
@@ -7298,7 +7833,7 @@ function changeItemPriority(itemId, newPriority) {
   const item = STATE.items.find(i => i.id === itemId);
   if (!item || item.priority === newPriority) return;
   item.priority = newPriority;
-  saveTEE(item).catch(() => toast('Save failed', 'error'));
+  const p = saveTEE(item);
 
   // Update priority badges in the open detail modal in place — no close/reopen needed
   const pr = getPri(newPriority);
@@ -7314,7 +7849,11 @@ function changeItemPriority(itemId, newPriority) {
   // it's currently open — see _pdmRefreshIfOpen above. Lets the newly
   // clickable Person Detail Priority chip re-sort/refresh immediately.
   _pdmRefreshIfOpen();
-  toast(`Priority set to ${newPriority}`, 'success');
+  // P4-R032 (Stage C, discovery basis P4-D041): same pattern as
+  // _pdmRefreshIfOpen immediately above — refresh Tag Browse in place if
+  // it's currently open, a no-op otherwise.
+  _tagBrowseRefreshIfOpen();
+  p.then(() => toast(`Priority set to ${newPriority}`, 'success')).catch(() => toast('Save failed', 'error'));
 }
 
 // ── TEE ADD/EDIT STATUS DROPDOWN (P4-R006) ──────────────────
@@ -8242,37 +8781,47 @@ function renderPeople() {
   _restoreSearchFocus('pp-search-input', _wasSearchFocused);
 }
 
-// ── People card overflow action menu (P4-R018e, discovery basis P4-D030
-// SS8-10) — replaces the two always-visible Edit/Remove dir-action-btn icons
-// with a single top-right "⋯" trigger. Mirrors openPriorityDropdown's proven
-// four-part shape (stopPropagation, toggle-existing check, anchor-relative
-// viewport-clamped positioning, outside-click dismissal) almost verbatim, per
-// the discovery's explicit "smallest safe approach" recommendation (SS8) —
-// the one deliberate addition is comparing the existing menu's own personId
-// before deciding whether a repeat click should just close it (same card) or
+// ── Shared card overflow action menu (P4-R018e, discovery basis P4-D030
+// SS8-10; generalized for Tags by P4-R043, discovery basis P4-D052) —
+// replaces per-surface always-visible icon buttons with a single top-right
+// "⋯" trigger. Mirrors openPriorityDropdown's proven four-part shape
+// (stopPropagation, toggle-existing check, anchor-relative viewport-clamped
+// positioning, outside-click dismissal) almost verbatim, per the discovery's
+// explicit "smallest safe approach" recommendation (SS8) — the one
+// deliberate addition is comparing the existing menu's own targetId before
+// deciding whether a repeat click should just close it (same card) or
 // close-and-reopen for a different card (so switching between two cards'
 // menus in sequence always shows the second card's menu, not nothing).
 // Named/scoped generically (not "openPersonActionMenu") per the discovery's
 // SS12 naming guidance, so a future Resources/Reminders pass can adopt or
 // adapt this without this checkpoint having overcommitted to an interface
-// neither surface has validated yet. Edit/Remove still call the exact same,
-// completely unmodified openPersonModal(id)/removePerson(id) functions the
-// old icon buttons called — no change to either function.
-function _openCardActionMenu(personId, anchorEl, event) {
+// neither surface has validated yet. P4-R043 generalizes this additively:
+// the optional trailing `actions` parameter defaults to People's own exact
+// Edit+Remove shape when omitted, so every existing People call site (which
+// never passes a 4th argument) is byte-for-byte unaffected. Edit/Remove
+// still call the exact same, completely unmodified openPersonModal(id)/
+// removePerson(id) functions the old icon buttons called — no change to
+// either function. No Escape-key support is added here — an intentionally
+// preserved, pre-existing gap (P4-D052).
+function _openCardActionMenu(targetId, anchorEl, event, actions) {
   event.stopPropagation();
+  actions = actions || [
+    { label: 'Edit',   icon: 'ti-pencil', danger: false, onClick: "openPersonModal('" + targetId + "')" },
+    { label: 'Remove', icon: 'ti-trash',  danger: true,  onClick: "removePerson('" + targetId + "')" }
+  ];
   const existing = document.getElementById('card-action-menu');
   if (existing) {
-    const samePerson = existing.dataset.personId === personId;
+    const sameTarget = existing.dataset.targetId === targetId;
     existing.remove();
-    if (samePerson) return;
+    if (sameTarget) return;
   }
   const menu = document.createElement('div');
   menu.id = 'card-action-menu';
   menu.className = 'card-action-menu';
-  menu.dataset.personId = personId;
-  menu.innerHTML =
-      '<button class="card-action-menu-item" onclick="document.getElementById(\'card-action-menu\')?.remove();openPersonModal(\'' + personId + '\')"><i class="ti ti-pencil" style="font-size:13px"></i>Edit</button>'
-    + '<button class="card-action-menu-item danger" onclick="document.getElementById(\'card-action-menu\')?.remove();removePerson(\'' + personId + '\')"><i class="ti ti-trash" style="font-size:13px"></i>Remove</button>';
+  menu.dataset.targetId = targetId;
+  menu.innerHTML = actions.map(a =>
+    '<button class="card-action-menu-item' + (a.danger ? ' danger' : '') + '" onclick="document.getElementById(\'card-action-menu\')?.remove();' + a.onClick + '"><i class="ti ' + a.icon + '" style="font-size:13px"></i>' + a.label + '</button>'
+  ).join('');
   document.body.appendChild(menu);
   const rect  = anchorEl.getBoundingClientRect();
   const mRect = menu.getBoundingClientRect();
@@ -8645,7 +9194,9 @@ function renderOverview() {
     const allTags  = (item.tags||[]).slice(0,6);
     const tagsRow1 = allTags.slice(0,3);
     const tagsRow2 = allTags.slice(3);
-    const mkTag    = tag => _buildTagChip(tag);
+    // P4-R034 (Stage D): pass this Task/Event/Entry's own source-aware
+    // context so a nested Tag Browse opens pre-scoped to it.
+    const mkTag    = tag => _buildTagChip(tag, _tagBrowseContextForRecord(item, item.type));
     // Subtask chip
     const subtaskChip = _subtaskChip(item);
     // Category badge (Today tab specific)
@@ -9968,8 +10519,9 @@ function renderReminders() {
 
   const buildReminderTags = s => {
     // Tag chips
+    // P4-R034 (Stage D): Sticky context (no state concept applies).
     return (s.tags||[]).length
-      ? `<div style="display:flex;flex-wrap:wrap;gap:4px">${(s.tags||[]).map(t => _buildTagChip(t)).join('')}</div>`
+      ? `<div style="display:flex;flex-wrap:wrap;gap:4px">${(s.tags||[]).map(t => _buildTagChip(t, _tagBrowseContextForRecord(null, 'sticky'))).join('')}</div>`
       : '';
   };
 
@@ -10375,7 +10927,8 @@ function renderBoard() {
     const allTags   = (t.tags||[]).slice(0,6);
     const tagsRow1  = allTags.slice(0,3);
     const tagsRow2  = allTags.slice(3);
-    const mkTag     = tag => _buildTagChip(tag);
+    // P4-R034 (Stage D): Board only shows Tasks, so context type is fixed.
+    const mkTag     = tag => _buildTagChip(tag, _tagBrowseContextForRecord(t, 'task'));
     const tags1HTML = tagsRow1.length ? `<div style="display:flex;gap:3px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;max-width:50%">${tagsRow1.map(mkTag).join('')}</div>` : '';
     const tags2HTML = tagsRow2.length ? `<div style="display:flex;gap:3px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;max-width:50%">${tagsRow2.map(mkTag).join('')}</div>` : '';
     return { tagsRow2, tags1HTML, tags2HTML };
@@ -10650,6 +11203,432 @@ function _renderArchiveDrawer(search, priority, assignee) {
     </div>`, true);
 }
 // ═══════════════════════════════════════════════════════════
+// RESOURCES > TAGS — read-only index (P4-R037, discovery basis P4-D045)
+// Stage 1 only: read-only union of catalogued (STATE.tagCatalog) + active
+// record-derived tags. No Add/Edit/Delete/Active-toggle/rename/merge/
+// automatic-registration/Tags-sheet-write behavior exists here or anywhere
+// else in the app. Deliberately not added to any shared-helper registry —
+// single consumer (renderDirectories()'s own 'tags' branch below), matching
+// this project's established precedent for narrowly-scoped, single-surface
+// clusters (e.g. _dirTags*, _tagBrowse*). All functions are pure/read-only
+// over STATE.items/STATE.stickies/STATE.folders/STATE.contacts/
+// STATE.locations/STATE.tagCatalog — no STATE array is ever sorted or
+// mutated in place; archived collections (STATE.archiveCache,
+// STATE._stickyArchiveRows) are never read, so archived usage is excluded
+// by construction.
+
+// Effective timestamp for the Newest sort: UpdatedAt when present/valid,
+// else CreatedAt when present/valid, else null (blank/unknown-timestamp
+// group). Never writes/infers/populates a timestamp anywhere.
+function _tagsMgmtEffectiveTimestamp(catalogEntry) {
+  const tryParse = raw => {
+    if (!raw) return null;
+    const t = Date.parse(raw);
+    return Number.isFinite(t) ? t : null;
+  };
+  const u = tryParse(catalogEntry.updatedAt);
+  return u !== null ? u : tryParse(catalogEntry.createdAt);
+}
+
+// Decorated-index stable sort — copied by value from Tag Browse's own
+// _tagBrowseStableSort shape (not called), so equal-comparator entries keep
+// their original relative order.
+function _tagsMgmtStableSort(arr, cmp) {
+  return arr.map((v, i) => [v, i]).sort((a, b) => cmp(a[0], b[0]) || (a[1] - b[1])).map(p => p[0]);
+}
+const _tagsMgmtByLabelCI = (a, b) =>
+  a.displayLabel.trim().toLowerCase().localeCompare(b.displayLabel.trim().toLowerCase());
+
+// Builds the full catalogued+record-derived union, one entry per unique
+// normalized key. Usage dedup (a record with duplicate/casing-variant tag
+// copies counts once) copies by value the same per-record Set-of-normalized-
+// keys technique _tagBrowseComputeData's own hasTag() closure relies on.
+// Casing-fallback scan order matches getAllKnownTags() exactly (items →
+// stickies → folders → contacts → locations); getAllKnownTags() itself is
+// not called or modified.
+function _tagsMgmtComputeUnion() {
+  const counts = new Map(); // normalizedKey -> {activities,notes,resources}
+  const firstCasing = new Map(); // normalizedKey -> first-seen raw tag string
+  const scanRecord = (rec, field) => {
+    const arr = Array.isArray(rec.tags) ? rec.tags : [];
+    const seenInRecord = new Set();
+    arr.forEach(t => {
+      const key = _normalizeTagCatalogKey(t);
+      if (!key) return;
+      if (!firstCasing.has(key)) firstCasing.set(key, t);
+      if (seenInRecord.has(key)) return;
+      seenInRecord.add(key);
+      const c = counts.get(key) || { activities: 0, notes: 0, resources: 0 };
+      c[field] += 1;
+      counts.set(key, c);
+    });
+  };
+  STATE.items.forEach(item => scanRecord(item, 'activities'));
+  STATE.stickies.forEach(s => scanRecord(s, 'notes'));
+  (STATE.folders || []).forEach(f => scanRecord(f, 'resources'));
+  (STATE.contacts || []).forEach(c => scanRecord(c, 'resources'));
+  (STATE.locations || []).forEach(l => scanRecord(l, 'resources'));
+
+  const catalogByKey = new Map();
+  (STATE.tagCatalog || []).forEach(e => { if (!catalogByKey.has(e.normalizedKey)) catalogByKey.set(e.normalizedKey, e); });
+
+  const allKeys = new Set(counts.keys());
+  catalogByKey.forEach((e, key) => allKeys.add(key));
+
+  const entries = [];
+  allKeys.forEach(key => {
+    if (!key) return;
+    const catalogEntry = catalogByKey.get(key) || null;
+    const c = counts.get(key) || { activities: 0, notes: 0, resources: 0 };
+    const total = c.activities + c.notes + c.resources;
+    entries.push({
+      key,
+      catalogEntry,
+      counts: c,
+      total,
+      displayLabel: catalogEntry ? catalogEntry.tag : (firstCasing.get(key) || key),
+      uncatalogued: !catalogEntry,
+      active: catalogEntry ? catalogEntry.active : null,
+      effectiveTimestamp: catalogEntry ? _tagsMgmtEffectiveTimestamp(catalogEntry) : null,
+    });
+  });
+  return entries;
+}
+
+function _tagsMgmtApplySearch(entries, q) {
+  if (!q) return entries;
+  return entries.filter(e => e.displayLabel.toLowerCase().includes(q));
+}
+
+function _tagsMgmtApplyFilter(entries, filterVal) {
+  if (filterVal === 'inuse')   return entries.filter(e => e.total > 0);
+  if (filterVal === 'notused') return entries.filter(e => e.total === 0);
+  if (filterVal === 'active')   return entries.filter(e => e.catalogEntry && e.active === true);
+  if (filterVal === 'inactive') return entries.filter(e => e.catalogEntry && e.active === false);
+  return entries; // 'all'
+}
+
+// Newest: blank/unknown-timestamp group first (sorted A-Z), then dated
+// entries newest-first (UpdatedAt-or-CreatedAt descending), A-Z as the final
+// tie-breaker throughout. Never alters/infers/writes a timestamp.
+function _tagsMgmtSortEntries(entries, sortVal) {
+  if (sortVal === 'most')
+    return _tagsMgmtStableSort(entries, (a, b) => (b.total - a.total) || _tagsMgmtByLabelCI(a, b));
+  if (sortVal === 'newest') {
+    const blank = _tagsMgmtStableSort(entries.filter(e => e.effectiveTimestamp === null), _tagsMgmtByLabelCI);
+    const dated = _tagsMgmtStableSort(entries.filter(e => e.effectiveTimestamp !== null),
+      (a, b) => (b.effectiveTimestamp - a.effectiveTimestamp) || _tagsMgmtByLabelCI(a, b));
+    return [...blank, ...dated];
+  }
+  return _tagsMgmtStableSort(entries, _tagsMgmtByLabelCI); // 'az' default
+}
+
+function _tagsMgmtCountPhrase(n, singular, plural) {
+  return n + ' ' + (n === 1 ? singular : plural);
+}
+// "N uses • A Activities • B Notes • C Resources" — zero-valued category
+// clauses omitted; a zero-use tag renders exactly "0 uses".
+function _tagsMgmtUsageLineHTML(entry) {
+  if (entry.total === 0) return '0 uses';
+  const bits = [];
+  if (entry.counts.activities > 0) bits.push(_tagsMgmtCountPhrase(entry.counts.activities, 'Activity', 'Activities'));
+  if (entry.counts.notes > 0)      bits.push(_tagsMgmtCountPhrase(entry.counts.notes, 'Note', 'Notes'));
+  if (entry.counts.resources > 0)  bits.push(_tagsMgmtCountPhrase(entry.counts.resources, 'Resource', 'Resources'));
+  return _tagsMgmtCountPhrase(entry.total, 'use', 'uses') + (bits.length ? ' &bull; ' + bits.join(' &bull; ') : '');
+}
+
+// P4-R037-fix1: Row 1 total-uses phrase and Row 2 breakdown-only phrase,
+// split out of _tagsMgmtUsageLineHTML (below, superseded but preserved
+// unused, matching this project's established no-opportunistic-cleanup
+// precedent) so the total is never repeated on the breakdown row.
+function _tagsMgmtTotalUsesHTML(entry) {
+  return _tagsMgmtCountPhrase(entry.total, 'use', 'uses');
+}
+function _tagsMgmtBreakdownOnlyHTML(entry) {
+  if (entry.total === 0) return '';
+  const bits = [];
+  if (entry.counts.activities > 0) bits.push(_tagsMgmtCountPhrase(entry.counts.activities, 'Activity', 'Activities'));
+  if (entry.counts.notes > 0)      bits.push(_tagsMgmtCountPhrase(entry.counts.notes, 'Note', 'Notes'));
+  if (entry.counts.resources > 0)  bits.push(_tagsMgmtCountPhrase(entry.counts.resources, 'Resource', 'Resources'));
+  return bits.join(' &bull; ');
+}
+
+// Card: inert chip (span, no onclick — _buildTagChip() itself is not called
+// since its baked-in onclick can't be safely disabled for its existing
+// callers), one explicit View button. No whole-card click, no chip click, no
+// ellipsis menu, no edit/mutation control. View's tag argument is escaped
+// for its single-quoted inline-onclick JS-string context via the same
+// convention already established elsewhere in this file for embedding a tag
+// name into an onclick (openTagColorEditor/applyTagColor's
+// tagName.replace(/'/g,"\\'")) — openTagList() itself is called bare,
+// unmodified, with no clearNav() pre-call, exactly as every other existing
+// bare-call origin already does.
+// P4-R037-fix1 row hierarchy (owner-approved correction): Row 1 — inert chip
+// + total uses beside it, plus (P4-R043) a top-right "⋯" action trigger for
+// catalogued cards only. Row 2 — breakdown only (left, omitted entirely when
+// total is 0) + View (right); footer switches to flex-end with no left
+// element at all when there is no breakdown, rather than rendering an empty
+// placeholder. Row 3 — quiet "Not in Tags catalog" metadata, rendered only
+// when entry.uncatalogued; no row at all for a catalogued tag. No
+// Active/Inactive badge is ever shown on the card — that remains filter-only
+// (OD-37 unaffected); Active is reachable only inside Tag Settings (P4-R043).
+//
+// P4-R043 (discovery basis P4-D052) — catalogued-only "⋯ → Edit → Tag
+// Settings" affordance. Reuses .card-action-trigger/.card-action-menu/
+// .card-action-menu-item and the shared, generalized _openCardActionMenu
+// unmodified — no separate Tags-only menu function exists. Uncatalogued
+// cards receive no trigger at all, per owner lock; the card body itself
+// still has no click handler, and View's own existing call is untouched.
+function _tagsMgmtBuildCard(entry) {
+  const tc = tagColor(entry.displayLabel);
+  const label = entry.displayLabel;
+  const viewTag = label.replace(/'/g, "\\'");
+  const labelAttr = label.replace(/"/g, '&quot;');
+  const breakdown = _tagsMgmtBreakdownOnlyHTML(entry);
+  const notInCatalogHTML = entry.uncatalogued
+    ? '<div class="dir-card-sub" style="font-size:10px;opacity:0.65">Not in Tags catalog</div>'
+    : '';
+  const keyEsc = entry.key.replace(/'/g, "\\'");
+  // P4-R043-fix1 (manual-verification correction): margin-left:auto right-
+  // aligns the trigger within .dir-card-header's flex row, mirroring the
+  // People-card management-action position (.person-actions' own
+  // margin-left:auto) without introducing a wrapper class. No other
+  // spacing/dimension change.
+  const ellipsisHTML = entry.uncatalogued ? '' :
+    '<button class="card-action-trigger" style="margin-left:auto" onclick="_openCardActionMenu(\'' + keyEsc + '\', this, event, _tagsMenuActions(\'' + keyEsc + '\'))" title="More actions"><i class="ti ti-dots" style="font-size:15px"></i></button>';
+  return '<div class="dir-card">'
+    + '<div class="dir-card-header" style="align-items:center;gap:8px">'
+    + '<span class="tag-btn gt-tag" title="' + labelAttr + '" style="background:' + tc.bg + ';color:' + tc.text + ';border-color:' + tc.border + ';cursor:default;min-width:0;flex-shrink:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="opacity:0.5">#</span>' + label + '</span>'
+    + '<span style="font-size:11px;color:var(--text2);flex-shrink:0;white-space:nowrap">' + _tagsMgmtTotalUsesHTML(entry) + '</span>'
+    + ellipsisHTML
+    + '</div>'
+    + '<div class="dir-card-footer" style="align-items:center;flex-wrap:wrap;gap:8px;justify-content:' + (breakdown ? 'space-between' : 'flex-end') + '">'
+    + (breakdown ? '<span style="font-size:12px;color:var(--text2);flex:1 1 auto;min-width:0">' + breakdown + '</span>' : '')
+    + '<button type="button" class="dir-card-action-link" onclick="event.stopPropagation();openTagList(\'' + viewTag + '\')">View</button>'
+    + '</div>'
+    + notInCatalogHTML
+    + '</div>';
+}
+
+// P4-R043 (discovery basis P4-D052) — data-only helper supplying the Tags
+// card's single-action array to the shared, generalized _openCardActionMenu.
+// Contains no menu open/close/position/toggle logic of its own — that logic
+// remains entirely inside _openCardActionMenu, unmodified and unforked.
+function _tagsMenuActions(normalizedKey) {
+  return [{ label: 'Edit', icon: 'ti-pencil', danger: false, onClick: "_openTagSettingsModal('" + normalizedKey.replace(/'/g, "\\'") + "')" }];
+}
+
+// P4-R043 — Tag Settings Stage 1 (discovery basis P4-D052/P4-D051-fix2).
+// Compact, top-level (not _navTo-opened) edit modal for an already-catalogued
+// Tags row. Edits Color/Active metadata only: Tag/NormalizedKey are read-only
+// this stage, CreatedAt is preserved, UpdatedAt is refreshed on save. Reuses
+// the existing plain-title compact-edit header shell (openDirModal's own
+// pattern), .form-group/.form-row language, and .modal-actions Cancel/Save
+// footer — openModal/clearNav/_modalCloseBtn are called unmodified. Color
+// reuses openTagColorEditor's visual swatch language only — never its
+// TAG_CUSTOM/localStorage persistence path (applyTagColor/saveTagColor are
+// not called anywhere in this cluster). Active reuses Sticky's existing
+// checkbox-with-inline-label pattern verbatim.
+function _openTagSettingsModal(normalizedKey) {
+  const entry = _getTagCatalogEntry(normalizedKey);
+  if (!entry) { toast('Tag not found in catalog', 'error'); return; }
+  const isDark = isDarkTheme();
+  const palD = ['#4F9AB5','#8B5CF6','#F59E0B','#10B981','#F472B6','#60A5FA','#34D399','#FB923C','#EF4444','#22D3EE'];
+  const palL = ['#0E7490','#6D28D9','#B45309','#166534','#BE185D','#1D4ED8','#15803D','#C2410C','#DC2626','#0891B2'];
+  const palette = isDark ? palD : palL;
+  const currentColor = _normalizeTagCatalogColor(entry.color) || palette[0];
+  const swatches = palette.map(function(c) {
+    const sel = (c === currentColor) ? '2px solid rgba(255,255,255,0.8)' : '2px solid transparent';
+    return '<div onclick="_tsSelectColor(\'' + c + '\',this)" style="width:20px;height:20px;border-radius:50%;background:' + c + ';cursor:pointer;border:' + sel + ';transition:transform .15s" onmouseover="this.style.transform=\'scale(1.2)\'" onmouseout="this.style.transform=\'scale(1)\'"></div>';
+  }).join('');
+  const tagLabel = String(entry.tag).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const keyAttr = normalizedKey.replace(/'/g, "\\'");
+  window._tsSelectedColor = currentColor;
+  window._tsEditingKey = normalizedKey;
+  openModal(`
+    <div class="modal-title">Tag Settings${_modalCloseBtn()}</div>
+    <div class="form-group"><label class="form-label">Tag</label><div style="font-size:14px;font-weight:600;padding:6px 0"><span style="opacity:0.5">#</span>${tagLabel}</div></div>
+    <div class="form-group">
+      <label class="form-label">Color</label>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px" id="ts-swatches">${swatches}</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="color" id="ts-custom-color" value="${currentColor}" style="width:28px;height:28px;border:none;border-radius:6px;cursor:pointer;padding:0" oninput="_tsSelectColor(this.value,null)">
+      </div>
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="ts-active" ${entry.active?'checked':''}> Active
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="clearNav()">Cancel</button>
+      <button class="btn-primary" onclick="_saveTagSettings('${keyAttr}')">Save</button>
+    </div>`);
+}
+
+// Local-only until Save; never touches TAG_CUSTOM/localStorage/applyTagColor/
+// saveTagColor — those remain the unrelated, unmodified legacy tag-color
+// mechanism this task deliberately does not reuse the persistence path of.
+function _tsSelectColor(color, swatchEl) {
+  window._tsSelectedColor = color;
+  const input = document.getElementById('ts-custom-color');
+  if (input) input.value = color;
+  if (swatchEl) {
+    const row = document.getElementById('ts-swatches');
+    if (row) row.querySelectorAll('div').forEach(d => d.style.border = '2px solid transparent');
+    swatchEl.style.border = '2px solid rgba(255,255,255,0.8)';
+  }
+}
+
+// P4-R043 save path. Exactly one sheetUpsert(CONFIG.SHEETS.tags, ...) call,
+// always sending the complete six-column row (NormalizedKey/Tag/CreatedAt
+// preserved from the current catalog entry, Color/Active replaced, UpdatedAt
+// refreshed using the same timestamp construction ensureTagsRegistered/
+// registerTagIfNew already use) — never a partial payload, since the generic
+// backend performs a full-row overwrite and blanks any omitted column
+// (P4-D051-fix2). Never calls ensureTagsRegistered/registerTagIfNew — this
+// edits an already-catalogued row, it does not register a new one. The modal
+// closes immediately (existing flat-close convention) but STATE.tagCatalog is
+// deliberately left untouched until the write actually succeeds — the
+// opposite of Directory's own pre-save optimistic mutation — so a failed
+// write can never leave the local catalog claiming an unsaved change
+// succeeded.
+async function _saveTagSettings(normalizedKey) {
+  const entry = _getTagCatalogEntry(normalizedKey);
+  if (!entry) { toast('Tag not found in catalog', 'error'); return; }
+  const color  = window._tsSelectedColor || entry.color;
+  const activeEl = document.getElementById('ts-active');
+  const active = !!(activeEl && activeEl.checked);
+  const now = new Date();
+  const ts  = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
+             +' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const row = {
+    'NormalizedKey': entry.normalizedKey,
+    'Tag':           entry.tag,
+    'Color':         color,
+    'Active':        active ? 'TRUE' : 'FALSE',
+    'CreatedAt':     entry.createdAt,
+    'UpdatedAt':     ts,
+  };
+  clearNav();
+  try {
+    await sheetUpsert(CONFIG.SHEETS.tags, row);
+    const idx = STATE.tagCatalog.findIndex(e => e.normalizedKey === normalizedKey);
+    if (idx >= 0) {
+      STATE.tagCatalog[idx] = {
+        tag:           row.Tag,
+        normalizedKey: row.NormalizedKey,
+        color:         row.Color,
+        active:        active,
+        createdAt:     row.CreatedAt,
+        updatedAt:     row.UpdatedAt,
+      };
+    }
+    renderDirectories();
+    toast('Tag updated');
+  } catch (e) {
+    toast('Save failed', 'error');
+  }
+}
+
+// Small, local, single-caller "no results" block — deliberately not a call
+// into renderDirectories()'s own local searchEmpty() closure (inaccessible
+// from this top-level function) and deliberately not extracted into a new
+// shared helper merely because the visuals are similar.
+function _tagsMgmtSearchEmptyHTML() {
+  return '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted)">'
+    + '<i class="ti ti-search-off" style="font-size:40px;display:block;margin-bottom:12px;opacity:0.5"></i>'
+    + '<div style="font-size:15px;font-weight:600;margin-bottom:4px;color:var(--text2)">No results</div>'
+    + '<div style="font-size:13px">No tags match that search</div>'
+    + '</div>';
+}
+
+function _tagsMgmtCardsHTML(q) {
+  const union = _tagsMgmtComputeUnion();
+  if (union.length === 0) {
+    return '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted)">'
+      + '<i class="ti ti-tag" style="font-size:40px;display:block;margin-bottom:16px;opacity:0.5"></i>'
+      + '<div style="font-size:16px;font-weight:700;color:var(--text2);margin-bottom:8px">No tags yet</div>'
+      + '<div style="font-size:13px;line-height:1.6;max-width:320px;margin:0 auto">'
+      + 'Tags you add to Tasks, Events, Entries, Notes, Folders, Contacts, and Locations will appear here.'
+      + '</div></div>';
+  }
+  let visible = _tagsMgmtApplySearch(union, q);
+  visible = _tagsMgmtApplyFilter(visible, STATE.tagsMgmtFilter);
+  if (visible.length === 0) return _tagsMgmtSearchEmptyHTML();
+  visible = _tagsMgmtSortEntries(visible, STATE.tagsMgmtSort);
+  return visible.map(_tagsMgmtBuildCard).join('');
+}
+
+// P4-R037-fix1: filter option metadata — value + display label, shared by
+// both the trigger button and the dropdown float.
+const _TAGS_MGMT_FILTER_OPTIONS = [
+  ['all', 'All'], ['inuse', 'In Use'], ['notused', 'Not Used'], ['active', 'Active'], ['inactive', 'Inactive'],
+];
+
+// Counts for every option, computed from the current search-matched set
+// only (never from the currently selected filter) — reuses the existing,
+// unmodified _tagsMgmtApplyFilter() for each option so selecting one option
+// can never collapse another option's own count.
+function _tagsMgmtFilterCounts(searchMatched) {
+  return {
+    all:      searchMatched.length,
+    inuse:    _tagsMgmtApplyFilter(searchMatched, 'inuse').length,
+    notused:  _tagsMgmtApplyFilter(searchMatched, 'notused').length,
+    active:   _tagsMgmtApplyFilter(searchMatched, 'active').length,
+    inactive: _tagsMgmtApplyFilter(searchMatched, 'inactive').length,
+  };
+}
+
+// Filter dropdown — modeled on the existing Reminders "All Dates" control
+// (P4-D045 requirement): direct reuse of .kb-dropdown-btn/.kb-float/
+// .kb-float-item/.kb-float-count CSS and the shared window._kbOpenFloat
+// open/close/position/outside-click mechanism (already proven across 5
+// existing callers: Kanban Priority/Assignee, Directory Tags, Reminders
+// Date/Tag) — Reminders/Kanban/Directory code itself is not touched. Option
+// data, labels, and counts are a Tags-local copy-by-value adaptation, not a
+// literal copy of Reminders' date/tag data — Reminders' own "All Dates" row
+// omits a count for itself; this control's five options (including All)
+// all show one, per the approved requirement. Independently recomputes the
+// union/search-matched set rather than threading extra return values through
+// the protected, unmodified _tagsMgmtCardsHTML/_tagsMgmtComputeUnion/
+// _tagsMgmtApplySearch — a deliberately small, pure, redundant recomputation
+// over already-in-memory data, not a persistence or behavior change.
+function _tagsMgmtFilterDropdownHTML(q) {
+  const union = _tagsMgmtComputeUnion();
+  const matched = _tagsMgmtApplySearch(union, q);
+  const counts = _tagsMgmtFilterCounts(matched);
+  const current = STATE.tagsMgmtFilter;
+  const currentLabel = (_TAGS_MGMT_FILTER_OPTIONS.find(([val]) => val === current) || _TAGS_MGMT_FILTER_OPTIONS[0])[1];
+  const floatHTML = '<div style="padding:4px 0">' + _TAGS_MGMT_FILTER_OPTIONS.map(([val, label]) =>
+    '<div class="kb-float-item' + (current === val ? ' active' : '') + '" onclick="_tagsMgmtSetFilter(\'' + val + '\')">'
+    + label + '<span class="kb-float-count">' + counts[val] + '</span></div>'
+  ).join('') + '</div>';
+  STATE._tagsMgmtFilterFloatHTML = floatHTML;
+  return '<button class="kb-dropdown-btn' + (current !== 'all' ? ' active' : '') + '" onclick="_tagsMgmtOpenFilterFloat(this)">'
+    + currentLabel + ' (' + counts[current] + ') &nbsp;&#9660;</button>';
+}
+window._tagsMgmtOpenFilterFloat = (btnEl) => window._kbOpenFloat(btnEl, STATE._tagsMgmtFilterFloatHTML);
+
+// Sort pill row — unchanged from P4-R037; only the filter control was
+// converted to a dropdown by this correction.
+function _tagsMgmtSortPillsHTML() {
+  const opts = [['az','A-Z'],['most','Most Used'],['newest','Newest']];
+  return '<div style="display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0">'
+    + '<span style="font-size:11px;color:var(--muted);font-weight:500">Sort:</span>'
+    + opts.map(([val,label]) =>
+      '<button class="gt-primary-pill' + (STATE.tagsMgmtSort===val?' active':'') + '" onclick="_tagsMgmtSetSort(\'' + val + '\')" style="padding:4px 10px;font-size:11px">' + label + '</button>'
+    ).join('') + '</div>';
+}
+window._tagsMgmtSetFilter = (val) => {
+  STATE.tagsMgmtFilter = val;
+  const f = document.querySelector('.kb-float');
+  if (f) f.remove();
+  renderDirectories();
+};
+window._tagsMgmtSetSort   = (val) => { STATE.tagsMgmtSort = val; renderDirectories(); };
+
+// ═══════════════════════════════════════════════════════════
 // DIRECTORIES — Folders, Contacts, Locations tabbed view
 // ═══════════════════════════════════════════════════════════
 function renderDirectories() {
@@ -10705,8 +11684,11 @@ function renderDirectories() {
     '<div class="dir-add-btn" onclick="openDirModal(\'' + type + '\',null)"><i class="ti ti-plus" style="font-size:20px"></i><span>Add ' + label + '</span></div>';
 
   // ── Tag chip row / action button group helpers ─────────────────
-  const tagChipRow = (tags, marginBottom) => {
-    const _raw = (tags||[]).map(t => _buildTagChip(t)).join('');
+  // P4-R034 (Stage D): gained a `type` parameter ('folder'|'contact'|
+  // 'location') so nested Tag Browse opens pre-scoped to the containing
+  // card's resource type; the record itself is not needed for this context.
+  const tagChipRow = (tags, marginBottom, type) => {
+    const _raw = (tags||[]).map(t => _buildTagChip(t, _tagBrowseContextForRecord(null, type))).join('');
     return _raw ? '<div style="display:flex;flex-wrap:wrap;gap:4px' + (marginBottom ? ';margin-bottom:4px' : '') + '">' + _raw + '</div>' : '';
   };
   const actionButtons = (type, id, marginLeftAuto) =>
@@ -10714,7 +11696,7 @@ function renderDirectories() {
 
   // ── Card builders ────────────────────────────────────────────
   const buildFolderCard = f => {
-    const _fTags = tagChipRow(f.tags, true);
+    const _fTags = tagChipRow(f.tags, true, 'folder');
     const _fOpen = f.url ? '<a class="dir-card-action-link" href="' + f.url + '" target="_blank" rel="noopener"><i class="ti ti-external-link" style="font-size:12px"></i> Open</a>' : '';
     return '<div class="dir-card">'
       + '<div class="dir-card-header" style="align-items:center">'
@@ -10736,7 +11718,7 @@ function renderDirectories() {
     // Phone + email — closer gap, no icon on company
     const _phone = c.phone ? '<a class="dir-card-action-link" href="tel:' + c.phone.split(' ').join('') + '" style="font-size:12px;margin-bottom:2px"><i class="ti ti-phone" style="font-size:12px"></i>' + c.phone + '</a>' : '';
     const _email = c.email ? '<a class="dir-card-action-link" href="mailto:' + c.email + '" style="font-size:12px"><i class="ti ti-mail" style="font-size:12px"></i>' + c.email + '</a>' : '';
-    const _ctags = tagChipRow(c.tags, false);
+    const _ctags = tagChipRow(c.tags, false, 'contact');
     const _cnotes = c.notes ? '<div class="dir-card-body" style="font-size:11px;opacity:0.8;line-height:1.4">' + c.notes + '</div>' : '';
     const _contacts = (_phone || _email)
       ? '<div style="display:flex;flex-direction:column;gap:3px;margin-bottom:4px">' + _phone + _email + '</div>'
@@ -10758,7 +11740,7 @@ function renderDirectories() {
   };
 
   const buildLocationCard = l => {
-    const _lTags   = tagChipRow(l.tags, false);
+    const _lTags   = tagChipRow(l.tags, false, 'location');
     const _lMapUrl = l.mapUrl  ? '<a class="dir-card-action-link" href="' + l.mapUrl + '" target="_blank" rel="noopener" style="font-size:12px"><i class="ti ti-map" style="font-size:13px"></i> View on Map</a>' : '';
     const _lPhone  = l.phone   ? '<div class="dir-card-body" style="font-size:12px"><i class="ti ti-phone" style="font-size:11px;margin-right:4px;opacity:0.7"></i>' + l.phone + '</div>' : '';
     const _lNotes  = l.notes   ? '<div class="dir-card-body" style="font-size:11px;opacity:0.8;line-height:1.4">' + l.notes + '</div>' : '';
@@ -10806,6 +11788,13 @@ function renderDirectories() {
       cardsHTML = filtered.map(buildContactCard).join('') + addCard('contact','Contact');
     }
 
+  } else if (tab === 'tags') {
+    // P4-R037: fixes the confirmed fallthrough/nesting defect — 'tags' is
+    // now its own top-level branch, sibling to 'folders'/'contacts', instead
+    // of nested a third level inside the Locations branch (where it wrongly
+    // inherited "No locations yet" whenever STATE.locations was empty).
+    cardsHTML = _tagsMgmtCardsHTML(q);
+
   } else {
     const _lBase     = STATE.locations.filter(l => !q || l.name.toLowerCase().includes(q) || (l.address||'').toLowerCase().includes(q) || (l.company||'').toLowerCase().includes(q) || (l.tags||[]).some(t=>t.includes(q)));
     const _lFiltered = activeTags.length ? _lBase.filter(l => activeTags.every(t => (l.tags||[]).includes(t))) : _lBase;
@@ -10814,17 +11803,7 @@ function renderDirectories() {
       cardsHTML = emptyState('ti-map-pin-off', 'No locations yet', 'Save addresses and map links for quick access', "openDirModal('location',null)", 'Add Location');
     } else if (filtered.length === 0) {
       cardsHTML = searchEmpty('locations');
-    } else if (tab === 'tags') {
-    cardsHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted)">'
-      + '<i class="ti ti-tag" style="font-size:40px;display:block;margin-bottom:16px;opacity:0.5"></i>'
-      + '<div style="font-size:16px;font-weight:700;color:var(--text2);margin-bottom:8px">Tags</div>'
-      + '<div style="font-size:13px;line-height:1.6;max-width:320px;margin:0 auto">'
-      + 'A central place to view and manage all your tags across the dashboard &mdash; '
-      + 'usage counts, colors, and more. Coming soon.'
-      + '</div>'
-      + '</div>';
-
-  } else {
+    } else {
       cardsHTML = filtered.map(buildLocationCard).join('') + addCard('location','Location');
     }
   }
@@ -10887,8 +11866,8 @@ function renderDirectories() {
     + '<i class="ti ti-search" style="font-size:12px;color:var(--muted)"></i>'
     + '<input id="dir-search-input" placeholder="' + _searchPh + '" value="' + _searchVal + '" oninput="STATE.dirSearch=this.value;renderDirectories()" style="border:none;background:transparent;color:var(--text);font-family:var(--font);font-size:13px;outline:none;width:100%">'
     + '</div>'
-    + _tagFilterHTML
-    + _sortHTML
+    + (tab === 'tags' ? _tagsMgmtFilterDropdownHTML(q) : _tagFilterHTML)
+    + (tab === 'tags' ? _tagsMgmtSortPillsHTML()   : _sortHTML)
     + '</div>'
     + '<div class="dir-grid" style="padding-bottom:40px">' + cardsHTML + '</div>';
 
@@ -11103,45 +12082,1126 @@ function closeFab() {
 }
 
 // ── CLICKABLE TAGS ───────────────────────────────────────────
-function openTagList(tag) {
-  const matches = STATE.items.filter(item => {
-    const tags = Array.isArray(item.tags)
-      ? item.tags
-      : (item.tags||'').split(',').map(t=>t.trim()).filter(Boolean);
-    return tags.some(t => t.toLowerCase() === tag.toLowerCase());
+// P4-R029 (discovery basis P4-D040): universal Browse across Activities
+// (Task/Event/Entry, unchanged click-to-openTEEDetail behavior) and Notes &
+// Resources (active Stickies + Folders/Contacts/Locations, read-only cards
+// — no click, no Edit, no delete, per owner-locked design). Active records
+// only — archived TEE items, archived Stickies, and the Tags catalog itself
+// are never searched. Matching is catalog-independent: it normalizes both
+// the clicked tag and every candidate record tag via the existing
+// _normalizeTagCatalogKey (trim → strip one leading '#' → lowercase), the
+// same identity rule the Tags catalog itself uses, without ever reading
+// STATE.tagCatalog/`active` — a match never depends on a catalog row
+// existing, and an inactive catalog row's tag still matches identically.
+// ── Tag Browse Stage A local state (P4-R030, discovery basis P4-D041) ──────
+// Ephemeral, single-instance, in-memory only — NOT part of STATE (this is
+// transient UI selection state, not application data) and NOT related to
+// STATE.pdmOpen (Person Detail's own tracker is neither read nor written
+// anywhere below). Reset fresh to the default selection every time
+// openTagList(tag) runs, including every reopen via an existing _navTo
+// closure — filter-state restoration through navigation is explicitly out
+// of scope for this stage (P4-D041 Stage D), so a fresh default on every
+// (re)open is the correct, intentional behavior here, not a gap.
+let _tagBrowseState = null;
+
+// The only valid Activities state-filter keys — mirrors the shape of Person
+// Detail Schedule's own PDM_SCHEDULE_FILTER_KEYS/_pdmNormalizeScheduleFilters
+// pattern (P4-D041 §6/§14 finding: this is the correct multi-select
+// precedent to adapt — Person Detail LIST's own ACTIVE/OVERDUE/DONE row is
+// single-select and is NOT the right model here). Tag-Browse-local; nothing
+// below reads or writes Person Detail's own scheduleFilters/state objects.
+const TAG_BROWSE_STATE_KEYS = ['active', 'overdue', 'done'];
+
+// P4-R034 (Stage D, discovery basis P4-D041 §17/§18): allow-lists for
+// safely embedding source-aware context/state values inside inline onclick
+// attribute expressions. Every one of these is a small, fixed, internally-
+// controlled set of enum tokens — never a tag name, never any other
+// record-derived text — so any value from these lists can be spliced
+// directly into an inline JS expression string with no escaping needed and
+// no possibility of executing arbitrary/injected code.
+const TAG_BROWSE_CONTEXT_TYPES       = ['task', 'event', 'entry', 'sticky', 'folder', 'contact', 'location'];
+const TAG_BROWSE_TAB_KEYS            = ['activities', 'notes'];
+const TAG_BROWSE_ACTIVITY_TYPE_KEYS  = ['all', 'task', 'event', 'entry'];
+const TAG_BROWSE_RESOURCE_TYPE_KEYS  = ['all', 'notes', 'folders', 'contacts', 'locations'];
+
+const TAG_BROWSE_TYPE_ICON     = { task:'ti-clipboard-list', event:'ti-calendar', entry:'ti-notes' };
+const TAG_BROWSE_RESOURCE_ICON = { folder:'ti-folder', contact:'ti-user', location:'ti-map-pin' };
+// P4-R033-fix1 (owner correction B): the P4-R033 character-length "needs
+// More" threshold (TAG_BROWSE_NOTES_CLAMP_CHARS, was 140) is removed — it was
+// this correction's own immediately-preceding stage's newly-introduced
+// constant, now fully unused following the switch to measured two-line
+// overflow detection (_tagBrowseInitClampOverflow below), matching this
+// project's established precedent for removing a correction's own
+// just-introduced, now-fully-unused artifact (e.g. P4-R031-fix2 removing
+// P4-R031-fix1's own .tag-browse-activity-role/.role-lead/.role-participant
+// selectors).
+
+// Recomputes every match array/count fresh from current STATE — cheap, and
+// avoids any staleness/cache-invalidation question, exactly mirroring how
+// Person Detail recomputes personItems(p.name) fresh on every filter click
+// rather than caching. Matching itself is byte-identical to P4-R029/P4-D040:
+// normalized via the existing _normalizeTagCatalogKey, catalog-independent,
+// duplicate/casing-safe via .some(...).
+// P4-R035 (discovery basis P4-D043 §14/§18): Notes & Resources ordering —
+// operates only on local COPIES of the four match arrays below;
+// STATE.stickies/folders/contacts/locations are never sorted or mutated
+// (each match array already comes from a fresh .filter() call, and every
+// helper below additionally builds its own new array via .map()/spread
+// before sorting, never sorting a shared reference in place). Stable via an
+// explicit decorated index-pairs technique (the same shape _pdmList's own
+// sortItems already uses) so a tie always preserves the record's original
+// position in the already-filtered match array — i.e. its original
+// source-sheet order — regardless of engine-specific sort behavior.
+const _tagBrowseStableSort = (arr, cmp) => arr
+  .map((item, idx) => ({ item, idx }))
+  .sort((a, b) => cmp(a.item, b.item) || (a.idx - b.idx))
+  .map(x => x.item);
+
+// Newest-first proxy — copied BY VALUE (not called) from the existing,
+// already-shipped Reminders "byNewest" comparator (renderReminders) and
+// Directory's own "newest" sort mode (renderDirectories._sortItems):
+// extracts the numeric suffix embedded in every uid()-generated id
+// (id = `${prefix}-${counter}`, counter seeded from Date.now() at load
+// time) and compares descending. No creation-date field is added, read, or
+// migrated anywhere — this is the app's own existing, proven newest-first
+// proxy, reused unmodified in shape. A record whose id has no parseable
+// digit run falls back to 0, which sorts it last (never first, never
+// throws); the stable tie-break in _tagBrowseStableSort then preserves its
+// original source-array position relative to any other such record. Known,
+// owner-accepted limitation (P4-D043 §26 / owner decision 1): a Location
+// whose Sheet ID cell is blank gets a freshly-minted uid('L') at every page
+// load (fetchLocations, unmodified) — such a Location's id therefore looks
+// "created right now" every session and may sort as newest regardless of
+// its real age. Not solved here — loaders/IDs/save behavior are
+// intentionally untouched, per the owner's explicit decision.
+const _tagBrowseByNewest = (a, b) =>
+  (parseInt((b.id||'').replace(/\D/g,''),10)||0) - (parseInt((a.id||'').replace(/\D/g,''),10)||0);
+
+// Contacts — alphabetical by name, case-insensitive via normalized
+// lowercase comparison (owner decision 4); blank/equal names preserve
+// original source order via the stable tie-break in _tagBrowseStableSort.
+const _tagBrowseByNameCI = (a, b) =>
+  (a.name||'').trim().toLowerCase().localeCompare((b.name||'').trim().toLowerCase());
+
+function _tagBrowseComputeData(tag) {
+  const targetKey = _normalizeTagCatalogKey(tag);
+  const hasTag = (tagsArr) => (Array.isArray(tagsArr) ? tagsArr : [])
+    .some(t => _normalizeTagCatalogKey(t) === targetKey);
+
+  const activityMatches = STATE.items.filter(item => hasTag(item.tags));
+  const taskMatches  = activityMatches.filter(i => i.type === 'task');
+  const eventMatches = activityMatches.filter(i => i.type === 'event');
+  const entryMatches = activityMatches.filter(i => i.type === 'entry');
+
+  // P4-R035: each *Raw array is STATE's own filtered result (a fresh array,
+  // never STATE.stickies/folders/contacts/locations itself); sorting below
+  // always produces a further new array via _tagBrowseStableSort, so no
+  // underlying STATE array is ever sorted or mutated.
+  const stickyMatchesRaw   = STATE.stickies.filter(s => hasTag(s.tags));
+  const folderMatchesRaw   = (STATE.folders||[]).filter(f => hasTag(f.tags));
+  const contactMatchesRaw  = (STATE.contacts||[]).filter(c => hasTag(c.tags));
+  const locationMatchesRaw = (STATE.locations||[]).filter(l => hasTag(l.tags));
+
+  // Notes: pinned first, newest-first within each of pinned/unpinned — done
+  // state does not affect grouping or order (owner decision 3). Mirrors
+  // Reminders' own pinnedF/activeF two-tier partition-then-sort shape.
+  const stickyMatches = [
+    ..._tagBrowseStableSort(stickyMatchesRaw.filter(s => s.pinned), _tagBrowseByNewest),
+    ..._tagBrowseStableSort(stickyMatchesRaw.filter(s => !s.pinned), _tagBrowseByNewest),
+  ];
+  // Folders / Locations — newest first, single tier.
+  const folderMatches   = _tagBrowseStableSort(folderMatchesRaw, _tagBrowseByNewest);
+  const locationMatches = _tagBrowseStableSort(locationMatchesRaw, _tagBrowseByNewest);
+  // Contacts — alphabetical, case-insensitive, stable.
+  const contactMatches  = _tagBrowseStableSort(contactMatchesRaw, _tagBrowseByNameCI);
+
+  const resourceCount   = stickyMatches.length + folderMatches.length + contactMatches.length + locationMatches.length;
+  const totalCount       = activityMatches.length + resourceCount;
+
+  return { tag, activityMatches, taskMatches, eventMatches, entryMatches,
+    stickyMatches, folderMatches, contactMatches, locationMatches, resourceCount, totalCount };
+}
+
+// Activities type-scope resolver — mirrors Person Detail's own
+// _pdmPrimaryScope shape (narrow-the-full-list-by-one-key pattern), but is
+// its own Tag-Browse-local function, not a call into _pdmPrimaryScope itself.
+function _tagBrowseActivityTypeScope(data, activityType) {
+  if (activityType === 'task')  return data.taskMatches;
+  if (activityType === 'event') return data.eventMatches;
+  if (activityType === 'entry') return data.entryMatches;
+  return data.activityMatches; // 'all'
+}
+
+// Owner-locked classification (P4-D041 §5/§6, verified already-correct and
+// reused unchanged): Tasks — DONE via _pdmIsDoneItem, OVERDUE via
+// _pdmIsOverdueItem (already task-only and already excludes Completed
+// internally), ACTIVE = neither. Events/Entries — DONE via _pdmIsDoneItem
+// (Done status), ACTIVE = not Done, and can never be Overdue since
+// _pdmIsOverdueItem itself is `item.type === 'task' && ...`. No competing
+// definition is introduced — both helpers are called directly, unmodified.
+function _tagBrowseStateOf(item) {
+  const done = _pdmIsDoneItem(item);
+  const overdue = !done && _pdmIsOverdueItem(item);
+  return done ? 'done' : (overdue ? 'overdue' : 'active');
+}
+
+// Multi-select OR filter — no selection means no restriction (show
+// everything in scope), matching the owner-locked semantics exactly.
+function _tagBrowseApplyStates(items, states) {
+  if (!states || !states.length) return items;
+  return items.filter(item => states.includes(_tagBrowseStateOf(item)));
+}
+
+// Active/Overdue/Done counts within a given Activity type scope — the one
+// shared computation both the state-pill row (§_tagBrowseBuildFilters) and
+// the selected-state normalizer below (P4-R030-fix1, owner correction 2)
+// need, kept in one place so they can never drift apart.
+function _tagBrowseStateCounts(data, activityType) {
+  const typeScope = _tagBrowseActivityTypeScope(data, activityType);
+  return {
+    active:  typeScope.filter(i => !_pdmIsDoneItem(i) && !_pdmIsOverdueItem(i)).length,
+    overdue: typeScope.filter(i => !_pdmIsDoneItem(i) && _pdmIsOverdueItem(i)).length,
+    done:    typeScope.filter(_pdmIsDoneItem).length,
+  };
+}
+
+// P4-R030-fix1 (owner correction 2): a state pill is hidden entirely once
+// its count is 0 (not merely disabled) — so a previously-selected state can
+// become hidden after a rebuild (e.g. switching Activity type zeroes out a
+// state that was selected under the old type). A hidden state must never
+// remain "selected" — this drops any such key from
+// _tagBrowseState.activityStates before anything renders; the array
+// becoming empty as a result correctly means "no state restriction," the
+// same semantics an explicitly-cleared selection already has. Multi-select
+// OR semantics themselves (_tagBrowseApplyStates above) are unchanged.
+function _tagBrowseNormalizeStates(data) {
+  if (!_tagBrowseState.activityStates.length) return;
+  const counts = _tagBrowseStateCounts(data, _tagBrowseState.activityType);
+  _tagBrowseState.activityStates = _tagBrowseState.activityStates.filter(k => counts[k] > 0);
+}
+
+function _tagBrowseSetTab(tab) {
+  if (!_tagBrowseState) return;
+  _tagBrowseState.tab = tab;
+  _tagBrowseRebuild();
+}
+function _tagBrowseSetActivityType(type) {
+  if (!_tagBrowseState) return;
+  _tagBrowseState.activityType = type;
+  _tagBrowseRebuild();
+}
+// Toggle-in/toggle-out multi-select, modeled directly on
+// _pdmToggleScheduleFilter's own proven array-toggle idiom (P4-D041's
+// identified correct precedent) — a Tag-Browse-local adaptation, not a call
+// into that function or into STATE.pdmOpen.
+function _tagBrowseToggleState(key) {
+  if (!_tagBrowseState) return;
+  const cur = _tagBrowseState.activityStates;
+  _tagBrowseState.activityStates = cur.includes(key) ? cur.filter(k => k !== key) : [...cur, key];
+  _tagBrowseRebuild();
+}
+function _tagBrowseSetResourceType(type) {
+  if (!_tagBrowseState) return;
+  _tagBrowseState.resourceType = type;
+  _tagBrowseRebuild();
+}
+
+// ── P4-R034 (Stage D, discovery basis P4-D041 §17/§18): source-aware
+// opening context ────────────────────────────────────────────────────────
+// Pure, read-only, and tolerant of any input — never throws, never touches
+// localStorage/saved records/the Tags catalog. Derives the minimal opening
+// context for a given source record + type.
+// Task/Event/Entry: state comes from the existing, unmodified
+// _pdmIsDoneItem/_pdmIsOverdueItem predicates (owner-locked classification —
+// Task can resolve to Overdue, Event/Entry never can, since
+// _pdmIsOverdueItem itself is task-only by construction; no competing
+// classification is introduced). Sticky/Folder/Contact/Location: no state
+// concept applies, and the record itself is not needed — callers with no
+// record in hand (e.g. Directory's tagChipRow, which only knows the type)
+// may pass null. Returns null for any unrecognized type.
+function _tagBrowseContextForRecord(record, type) {
+  if (type === 'task' || type === 'event' || type === 'entry') {
+    if (!record) return null;
+    let state = 'active';
+    if (_pdmIsDoneItem(record)) state = 'done';
+    else if (type === 'task' && _pdmIsOverdueItem(record)) state = 'overdue';
+    return { type, state };
+  }
+  if (type === 'sticky' || type === 'folder' || type === 'contact' || type === 'location') {
+    return { type };
+  }
+  return null;
+}
+
+// Tolerant, pure normalizer — the single place any inbound context value is
+// turned into the 4 fields openTagList seeds _tagBrowseState with. Accepts
+// three kinds of input, indistinguishably safe to pass: (1) a minimal
+// {type,state} record-derived context from _tagBrowseContextForRecord;
+// (2) a full {tab,activityType,activityStates,resourceType} state snapshot
+// from _tagBrowseSnapshotExprOfCurrentState (used by reopen closures to
+// restore the exact prior modal state); (3) null/undefined/malformed/
+// unrecognized input of any shape. Never throws. Preserves the existing
+// empty-array-means-all semantics for activityStates. Falls back cleanly to
+// Activities/All/no-restriction — today's exact pre-P4-R034 default — for
+// anything it cannot resolve.
+function _tagBrowseNormalizeContext(ctx) {
+  const fallback = { tab: 'activities', activityType: 'all', activityStates: [], resourceType: 'all' };
+  if (!ctx || typeof ctx !== 'object') return fallback;
+
+  // Full state-snapshot shape (reopen closures use this).
+  if (ctx.tab === 'activities' || ctx.tab === 'notes') {
+    const activityType = TAG_BROWSE_ACTIVITY_TYPE_KEYS.includes(ctx.activityType) ? ctx.activityType : 'all';
+    const resourceType = TAG_BROWSE_RESOURCE_TYPE_KEYS.includes(ctx.resourceType) ? ctx.resourceType : 'all';
+    const activityStates = Array.isArray(ctx.activityStates)
+      ? ctx.activityStates.filter(k => TAG_BROWSE_STATE_KEYS.includes(k))
+      : [];
+    return { tab: ctx.tab, activityType, activityStates, resourceType };
+  }
+
+  // Minimal record-derived context shape (from _tagBrowseContextForRecord).
+  if (ctx.type === 'task' || ctx.type === 'event' || ctx.type === 'entry') {
+    const activityStates = TAG_BROWSE_STATE_KEYS.includes(ctx.state) ? [ctx.state] : [];
+    return { tab: 'activities', activityType: ctx.type, activityStates, resourceType: 'all' };
+  }
+  const resourceTypeByContextType = { sticky:'notes', folder:'folders', contact:'contacts', location:'locations' };
+  if (resourceTypeByContextType[ctx.type]) {
+    return { tab: 'notes', activityType: 'all', activityStates: [], resourceType: resourceTypeByContextType[ctx.type] };
+  }
+
+  return fallback;
+}
+
+// Builds a safe, allow-listed inline JS object-literal expression string for
+// splicing a minimal {type,state} context into an onclick attribute — used
+// when opening a NEW tag from a containing card/chip (never for reopening
+// the current tag; see _tagBrowseSnapshotExprOfCurrentState for that). Only
+// fixed, internally-controlled enum tokens (TAG_BROWSE_CONTEXT_TYPES/
+// TAG_BROWSE_STATE_KEYS) are ever interpolated — never a tag name, never any
+// other record-derived text — so this can never inject arbitrary executable
+// code regardless of what a tag or record contains. Returns the literal
+// string 'null' for anything unresolved, which _tagBrowseNormalizeContext
+// safely treats as "use the fallback."
+function _tagBrowseContextExpr(ctx) {
+  if (!ctx || !TAG_BROWSE_CONTEXT_TYPES.includes(ctx.type)) return 'null';
+  const stateProp = TAG_BROWSE_STATE_KEYS.includes(ctx.state) ? `,state:'${ctx.state}'` : '';
+  return `{type:'${ctx.type}'${stateProp}}`;
+}
+
+// Builds a safe inline JS object-literal expression string snapshotting the
+// CURRENT Tag Browse state (tab/activityType/activityStates/resourceType) at
+// the moment a card/chip is rendered — spliced into a reopen closure so
+// Back (or reopening the same tag after a nested-tag/TEE-Detail round trip)
+// restores the exact manually-selected filters that were active, per this
+// stage's own "capture current filters in the reopen closure, never rely on
+// the newly opened tag's context to reconstruct them" requirement. Only
+// fixed, internally-controlled enum values are ever interpolated — never a
+// tag name. Returns the literal string 'null' if Tag Browse is not
+// currently open (_tagBrowseNormalizeContext(null) safely falls back).
+function _tagBrowseSnapshotExprOfCurrentState() {
+  const s = _tagBrowseState;
+  if (!s) return 'null';
+  const tab = s.tab === 'notes' ? 'notes' : 'activities';
+  const activityType = TAG_BROWSE_ACTIVITY_TYPE_KEYS.includes(s.activityType) ? s.activityType : 'all';
+  const resourceType = TAG_BROWSE_RESOURCE_TYPE_KEYS.includes(s.resourceType) ? s.resourceType : 'all';
+  const states = (Array.isArray(s.activityStates) ? s.activityStates : []).filter(k => TAG_BROWSE_STATE_KEYS.includes(k));
+  const statesStr = states.join(',');
+  return `{tab:'${tab}',activityType:'${activityType}',resourceType:'${resourceType}',activityStates:'${statesStr}'.split(',').filter(Boolean)}`;
+}
+
+// Tag chip row for a Notes & Resources card — the tag currently being
+// browsed renders highlighted/non-clickable; every other tag opens its own
+// Tag Browse via the same _navTo pattern every tag chip in the app already
+// uses. P4-R034 (Stage D): gained an optional browseContext parameter — the
+// containing Activity/Sticky/Folder/Contact/Location card's own source-aware
+// context, passed in by each of this function's 5 callers below — so a
+// nested tag opens pre-scoped to THAT record's context (never to whatever
+// filters the current modal happens to have manually selected); the reopen
+// side of the same closure separately captures a snapshot of the CURRENT
+// modal's own live state via _tagBrowseSnapshotExprOfCurrentState, so Back
+// still restores exactly what was on screen before the nested tag opened.
+function _tagBrowseBuildTagChips(tagsArr, browseContext = null) {
+  const arr = Array.isArray(tagsArr) ? tagsArr : [];
+  if (!arr.length) return '';
+  const currentTag = _tagBrowseState.tag;
+  const targetKey = _normalizeTagCatalogKey(currentTag);
+  const reopenExpr = _tagBrowseSnapshotExprOfCurrentState();
+  const newTagCtxExpr = _tagBrowseContextExpr(browseContext);
+  const chips = arr.map(t => {
+    const tc = tagColor(t);
+    const isCurrent = _normalizeTagCatalogKey(t) === targetKey;
+    return isCurrent
+      ? `<span class="tag-btn" style="background:${tc.bg};color:${tc.text};border-color:${tc.border};cursor:default;font-weight:800" title="Currently browsing #${t}"><span style="opacity:0.5">#</span>${t}</span>`
+      : `<button class="tag-btn" style="background:${tc.bg};color:${tc.text};border-color:${tc.border}" onclick="event.stopPropagation();_navTo(()=>openTagList('${currentTag}', ${reopenExpr}),()=>openTagList('${t}', ${newTagCtxExpr}))"><span style="opacity:0.5">#</span>${t}</button>`;
+  }).join(' ');
+  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${chips}</div>`;
+}
+
+// Activity card (P4-R031-fix1, Stage B correction; role output removed by
+// P4-R031-fix2 per further owner correction; discovery basis P4-D041) —
+// replaces P4-R031's rejected custom four-row card family with a
+// Tag-Browse-owned reproduction of Person Detail LIST's own actual
+// `_pdmList` `renderItem` card (row hierarchy, badge placement, tag/date
+// row — see the CSS block above for the exact value-by-value mapping).
+// P4-R031-fix1 originally included a title-row role chip (Lead/
+// Participant); P4-R031-fix2 removed it entirely, since Person Detail's own
+// role labeling is viewer-relative to whichever person's modal is open,
+// which Tag Browse has no equivalent of — the title row now has no
+// right-side content at all, using the card's full width. Per owner
+// direction, Person Detail LIST does not use a Tabler
+// icon + text identity block at all (its own Row 1 left is simply
+// Type+Priority+Status badges) — so this card drops the separate icon this
+// function had in P4-R031 and matches that plain-badge-row structure
+// exactly; TAG_BROWSE_TYPE_ICON is no longer referenced by this function as a
+// result and is left defined but unused, per this correction's own explicit
+// allowance to leave a now-unused P4-R031-specific artifact in place rather
+// than perform opportunistic cleanup (TAG_BROWSE_RESOURCE_ICON, a separate
+// constant, remains used by the Sticky/Resource cards below, untouched).
+// Outer click/reopen behavior,
+// matching, classification, counts, filters, grouping, and ordering are all
+// unchanged from P4-R031 — only this function's own returned markup changed.
+//
+// Priority/Status reuse the existing shared, already-interactive
+// _buildPriorityBadge/_buildStatusBadge helpers completely unmodified —
+// both already call event.stopPropagation() internally via
+// openPriorityDropdown/openStatusDropdown, so clicking either opens its
+// dropdown without also triggering this card's own onclick. Selecting a
+// new value still saves correctly through the existing, unmodified
+// changeItemPriority/changeItemStatus -> saveTEE() path.
+//
+// KNOWN STAGED LIMITATION (intentional, deferred to P4-R032): editing
+// Priority/Status from a card here saves correctly, but Tag Browse itself
+// has no refresh hook yet (STATE.pdmOpen/_pdmRefreshIfOpen belong to Person
+// Detail only and are neither read nor called here) — the edited card's own
+// badge updates in place (both dropdown-change functions already patch any
+// visible badge by its own onclick-selector match), but Tag Browse's counts/
+// grouping/visible-list will not re-sort or move the item between
+// Active/Overdue/Done until Tag Browse is closed and reopened. This is not
+// solved in this checkpoint.
+function _tagBrowseBuildActivityRow(item) {
+  const pri = getPri(item.priority);
+  const isDone = _pdmIsDoneItem(item);
+  const doneClass = isDone ? ' is-done' : '';
+  const todayStr = fmtDate(TODAY);
+
+  const typeBadge     = _buildTypeBadge(item.type);
+  const priorityBadge = _buildPriorityBadge(item);
+  const statusBadge   = _buildStatusBadge(item);
+  const subtaskChip   = _subtaskChip(item);
+
+  // Row 1 right — the same Overdue/Due Today/Starting Today contextual
+  // indicator Person Detail LIST shows, reproduced with the same precedence
+  // and the same task-only scope for Overdue/Starting Today (matching
+  // _pdmIsOverdueItem's own task-only scope; Due Today applies to any type
+  // via its own date field) — a display-only badge layered on top, exactly
+  // as in Person Detail; it does not affect Active/Overdue/Done grouping,
+  // which remains governed entirely by the unchanged _tagBrowseStateOf.
+  let contextChip = '';
+  if (!isDone) {
+    if (_pdmIsOverdueItem(item)) {
+      contextChip = `<span class="tag-browse-activity-chip ctx-overdue">Overdue</span>`;
+    } else {
+      const dueTodayNow = item.type === 'task' ? item.dueDate === todayStr : item.date === todayStr;
+      const startsTodayNow = item.type === 'task' && item.startDate === todayStr && item.dueDate !== todayStr;
+      if (dueTodayNow) contextChip = `<span class="tag-browse-activity-chip ctx-due-today">Due Today</span>`;
+      else if (startsTodayNow) contextChip = `<span class="tag-browse-activity-chip ctx-starts-today">Starting Today</span>`;
+    }
+  }
+
+  // Bottom row right — due-pressure chip (task-only, reusing the existing
+  // shared .due-chip/.due-warn/.due-over/.due-today classes verbatim, same
+  // as Person Detail LIST) plus the plain date/time text, using the exact
+  // same existing fields/formatters Person Detail LIST uses: Task shows the
+  // plain due date only (no "Due " prefix, no timeframe range, matching
+  // P4-R015c-fix2's already-accepted simplification); Event shows date +
+  // fmtTimeRange(time,endTime); Entry shows date + fmtTime(time). No new
+  // date semantics.
+  const days = item.type === 'task' ? daysUntil(item.dueDate) : null;
+  let dueChip = '';
+  if (days !== null) {
+    if (days < 0)      dueChip = `<span class="due-chip due-over">${Math.abs(days)}d Over</span>`;
+    else if (days===0) dueChip = `<span class="due-chip due-today">Today</span>`;
+    else               dueChip = `<span class="due-chip due-warn">${days}d</span>`;
+  }
+  let dateMeta = '';
+  if (item.type === 'task') {
+    dateMeta = item.dueDate || '';
+  } else if (item.type === 'event') {
+    dateMeta = item.date || '';
+    const timeStr = fmtTimeRange(item.time, item.endTime);
+    if (timeStr) dateMeta += (dateMeta ? ' · ' : '') + timeStr;
+  } else {
+    dateMeta = item.date || '';
+    if (item.time) dateMeta += (dateMeta ? ' · ' : '') + fmtTime(item.time);
+  }
+
+  // P4-R031-fix2 (owner correction): the P4-R031-fix1 title-row role
+  // indicator (Lead/Participant) is removed entirely. Person Detail LIST's
+  // own Lead-vs-Contributor/Participant labeling is viewer-relative
+  // (computed against the one specific person whose Person Detail is open)
+  // — Tag Browse has no such "current person," and the owner found even the
+  // record's-own-absolute-Lead fallback ambiguous/misleading in this
+  // context. No replacement people/role element is added — the title row's
+  // right side is simply omitted, per the owner's explicit instruction.
+  // parseAssignees/splitAssigneeNames are no longer called from this
+  // function as a result; both remain fully unchanged, still used elsewhere
+  // in the app (e.g. Person Detail's own _pdmList, TEE Add/Edit/Detail).
+
+  // Bottom row left — existing unchanged tag-chip builder, untouched.
+  // P4-R034 (Stage D): nested tag opens pre-scoped to THIS Activity's own context.
+  const tagChipsHTML = _tagBrowseBuildTagChips(item.tags, _tagBrowseContextForRecord(item, item.type));
+
+  // P4-R034 (Stage D): reopen captures a snapshot of Tag Browse's own
+  // current live state, so Back from TEE Detail restores the exact prior
+  // tab/type/state selection instead of resetting to defaults.
+  const onclickFn = `_navTo(()=>openTagList('${_tagBrowseState.tag}', ${_tagBrowseSnapshotExprOfCurrentState()}),()=>openTEEDetail('${item.id}'))`;
+  return `<div class="tag-browse-activity-card${doneClass}"
+    style="border-left-color:${pri.bar||pri.bg}"
+    onclick="${onclickFn}">
+    <div class="tag-browse-activity-row">
+      <div class="tag-browse-activity-row-left">
+        ${typeBadge}
+        ${priorityBadge}
+        ${statusBadge}
+      </div>
+      <div class="tag-browse-activity-row-right">
+        ${contextChip}
+        ${subtaskChip}
+      </div>
+    </div>
+    <div class="tag-browse-activity-title">${item.title}</div>
+    <div class="tag-browse-activity-row">
+      <div class="tag-browse-activity-row-left">
+        ${tagChipsHTML}
+      </div>
+      <div class="tag-browse-activity-row-right">
+        ${dueChip}
+        ${dateMeta ? `<span class="tag-browse-activity-date">${dateMeta}</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── P4-R033 Notes & Resources card redesign (discovery basis P4-D042) ──────
+// Small Tag-Browse-local text/link safety helpers, copied BY VALUE from the
+// established TEE Links pattern (_escapeTEEText/_escapeTEEAttr/
+// _classifyTEELinkTarget) per the owner decision resolved in P4-D042 §22 —
+// never calling those TEE-scoped functions directly (their own comments
+// explicitly scope them to the TEE Links feature only), and never modifying
+// them. Directory's own existing Folder/Contact/Location anchors (buildFolderCard/
+// buildContactCard/buildLocationCard) are untouched and keep their own
+// simpler, pre-existing behavior — these helpers exist only for Tag Browse's
+// own cards.
+
+// P4-R033-fix1 (owner correction A — root cause of the Notes & Resources
+// ALL/Locations runtime failure): safely coerces any loaded record field to
+// a trimmed string before any string method is ever called on it. Loaded
+// Sticky/Folder/Contact/Location fields are whatever type Google
+// Sheets/Apps Script returned for that cell's own auto-detected format —
+// fetchStickies/fetchFolders/fetchContacts/fetchLocations (all unmodified,
+// protected) only apply `|| ''`, which does not coerce a truthy non-string
+// value (e.g. a numeric-looking Location phone value arriving as a JS
+// number, not a string) to a string. The prior P4-R033 pattern
+// `(value || '').trim()` called `.trim()` directly on such a value — Number.
+// prototype has no `.trim()`, producing the observed
+// "Uncaught TypeError: (l.phone || '').trim is not a function" and aborting
+// _tagBrowseRebuild()/_tagBrowseBuildContent() before they finished
+// replacing #tag-browse-content, which is why the previously-visible
+// filter's cards remained stuck on screen. Every field this stage's card
+// builders read now passes through this helper before any string method is
+// applied. Does not touch fetch/parse/save functions, schema, or saved data
+// in any way — display-time coercion only.
+function _tagBrowseToText(value) {
+  return String(value ?? '').trim();
+}
+
+// Escaping — identical replacement rules to _escapeTEEText/_escapeTEEAttr,
+// duplicated locally rather than called, matching this project's established
+// "copy by value, own namespace" discipline (already used for
+// .tag-browse-activity-* vs .pdm-activity-* CSS).
+function _tagBrowseEscText(str) {
+  return (str == null ? '' : String(str)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _tagBrowseEscAttr(str) {
+  return _tagBrowseEscText(str).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+// Escapes free-text body content (Sticky text / Contact Notes / Location
+// Notes) for safe HTML-text-node insertion, then converts literal newlines
+// into a fixed, non-user-controlled '<br>' so saved line breaks remain
+// visible — the '<br>' is a literal string this function always inserts
+// itself, never derived from the escaped input, so this can never become an
+// HTML-injection vector. Never assigns unescaped saved content as HTML.
+function _tagBrowseTextToSafeHtml(str) {
+  return _tagBrowseEscText(str).replace(/\r\n|\r|\n/g, '<br>');
+}
+
+// Web-link classifier for Folder Open / Location View on Map — a narrowed,
+// Tag-Browse-local copy of _classifyTEELinkTarget's own "web" branch only
+// (scheme allow-list + domain-shorthand normalization). Deliberately excludes
+// _classifyTEELinkTarget's local-file-path support: Folder/Location links are
+// web links only in this feature, so that branch would be dead/unwanted
+// complexity here. Returns null (no href, no action rendered) for blank,
+// unsafe-scheme (javascript:/data:/vbscript:/anything not http/https), or
+// unrecognized values — the caller renders no action button in that case.
+function _tagBrowseClassifyWebLink(raw) {
+  const v = (raw == null ? '' : String(raw)).trim();
+  if (!v) return null;
+  const schemeMatch = v.match(/^([a-zA-Z][a-zA-Z0-9+.-]{1,}):/);
+  const scheme = schemeMatch ? schemeMatch[1].toLowerCase() : '';
+  if (scheme) {
+    if (scheme !== 'http' && scheme !== 'https') return null;
+    return { href: _tagBrowseEscAttr(v) };
+  }
+  // Domain shorthand (example.com, www.example.com/path) — identical pattern
+  // to _classifyTEELinkTarget's own domain-shorthand regex, normalized to https.
+  if (/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+(\/\S*)?$/i.test(v)) {
+    return { href: _tagBrowseEscAttr('https://' + v) };
+  }
+  return null;
+}
+
+// tel: builder for Contact Call / Location Call — validates a restrictive
+// visible-character allow-list (digits, spaces, + - ( ) .) so a malformed or
+// unsafe value (letters, angle brackets, quotes, colons/schemes) can never
+// reach an href, requires at least one digit, strips whitespace only
+// (matching Directory's own existing, unmodified c.phone.split(' ').join('')
+// convention), then escapes the final attribute value. Returns '' (no Call
+// action rendered) for blank/malformed/unsafe input.
+function _tagBrowseBuildTelHref(raw) {
+  const v = (raw == null ? '' : String(raw)).trim();
+  if (!v) return '';
+  if (!/^[+()\d][\d\s().+-]*$/.test(v)) return '';
+  if (!/\d/.test(v)) return '';
+  const compact = v.replace(/\s+/g, '');
+  return 'tel:' + _tagBrowseEscAttr(compact);
+}
+// mailto: builder for Contact Email — a simple, restrictive
+// local@domain.tld-shape check (no whitespace/angle-brackets/quotes/
+// ampersands, which also rules out unwanted mailto query-string injection
+// like "?cc=") before building the href, then escapes the final attribute
+// value. Returns '' (no Email action rendered) for blank/malformed/unsafe input.
+function _tagBrowseBuildMailHref(raw) {
+  const v = (raw == null ? '' : String(raw)).trim();
+  if (!v) return '';
+  if (!/^[^\s<>"'&]+@[^\s<>"'&]+\.[^\s<>"'&]+$/.test(v)) return '';
+  return 'mailto:' + _tagBrowseEscAttr(v);
+}
+
+// Shared inline expand/collapse toggle for Sticky text / Contact Notes /
+// Location Notes clamps (P4-D042 §12/§13) — modeled directly on the app's
+// existing togglePinExpand()/TEE Pinned Notes precedent (class-based toggle,
+// local DOM state only). Never writes to _tagBrowseState or STATE, never
+// calls _tagBrowseRebuild, never opens an editor — a rebuild (tab switch,
+// filter change, or a Priority/Status-triggered _tagBrowseRefreshIfOpen) will
+// naturally reset any expanded card back to collapsed, matching the
+// discovery's own confirmed-safe expectation.
+function _tagBrowseToggleClamp(btn, textId) {
+  const el = document.getElementById(textId);
+  if (!el) return;
+  const expanded = el.classList.toggle('is-expanded');
+  btn.textContent = expanded ? 'Less' : 'More';
+  btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+}
+
+// P4-R033-fix1 (owner correction B): replaces the removed character-count
+// "needs More" heuristic with actual measured two-line overflow detection.
+// Called once per Tag Browse content rebuild — from _tagBrowseRebuild (every
+// tab/filter/state change and every Priority/Status-triggered
+// _tagBrowseRefreshIfOpen) and from openTagList's own initial render, both
+// only after the fresh markup is already in the document — via a single
+// requestAnimationFrame tick, not a loop and not a ResizeObserver/
+// MutationObserver, so scrollHeight/clientHeight are read only once layout
+// has been committed for the new nodes. Each .tag-browse-resource-notes
+// element is measured independently; its own sibling
+// .tag-browse-resource-toggle (found via DOM relationship — no id
+// re-parsing) is revealed only when the element's scrollHeight exceeds its
+// (2-line-clamped) clientHeight, i.e. only on actual overflow, never from
+// character count. Already-expanded elements are skipped so a mid-toggle
+// measurement can never fight the user's own action. Purely a DOM
+// measurement/visibility pass — no app state read or written, no rebuild
+// triggered, no saved data touched.
+function _tagBrowseInitClampOverflow() {
+  const contentEl = document.getElementById('tag-browse-content');
+  if (!contentEl) return;
+  requestAnimationFrame(() => {
+    contentEl.querySelectorAll('.tag-browse-resource-notes').forEach(el => {
+      if (el.classList.contains('is-expanded')) return;
+      const wrap = el.closest('.tag-browse-resource-body');
+      const btn = wrap ? wrap.querySelector('.tag-browse-resource-toggle') : null;
+      if (!btn) return;
+      btn.hidden = !(el.scrollHeight > el.clientHeight + 1);
+    });
   });
+}
 
-  const typeIcon = { task:'📋', event:'📆', entry:'📝' };
-  const listHTML = matches.length === 0
-    ? `<div style="text-align:center;padding:28px;color:var(--muted)">No items tagged "${tag}"</div>`
-    : matches.map(item => {
-        const pri = getPri(item.priority);
-        const metaStr = item.type === 'task'
-          ? `${getDisplayStatus(item)}${item.dueDate?' · due '+item.dueDate:''}`
-          : item.type === 'event'
-            ? `${item.date}${item.time?' · '+fmtTime(item.time):''}`
-            : item.date || '';
-        const onclickFn = `_navTo(()=>openTagList('${tag}'),()=>openTEEDetail('${item.id}'))`;
-        return `<div class="tag-list-item" onclick="${onclickFn}">
-          <span class="tag-list-type">${typeIcon[item.type]||'📋'}</span>
-          <div class="tag-list-body">
-            <div class="tag-list-title">${item.title}</div>
-            <div class="tag-list-meta">${metaStr}</div>
-          </div>
-          <span style="font-size:9px;padding:2px 7px;border-radius:20px;background:${pri.bg};color:${pri.text};font-weight:600">${item.priority||''}</span>
-        </div>`;
-      }).join('');
+// Builds a clamped Notes/body block + its conditional More/Less toggle —
+// shared by Sticky text, Contact Notes, and Location Notes (P4-D042 §13: one
+// shared mechanism, not per-type markup). Returns '' when the field is blank,
+// so callers can hide the block entirely with no gap.
+//
+// P4-R033-fix1: the toggle button is now always rendered (whenever the field
+// is non-blank) but starts `hidden` — _tagBrowseInitClampOverflow (called
+// after every rebuild/initial render) reveals it only when actual two-line
+// overflow is measured. The field itself is coerced via _tagBrowseToText
+// before any string method runs on it (root-cause fix for the Location
+// numeric-phone crash — see _tagBrowseToText's own comment).
+function _tagBrowseBuildClampedNotes(rawValue, textId) {
+  const raw = _tagBrowseToText(rawValue);
+  if (!raw) return '';
+  const safeHtml = _tagBrowseTextToSafeHtml(raw);
+  return `<div class="tag-browse-resource-body">
+      <div class="tag-browse-resource-notes" id="${textId}">${safeHtml}</div>
+      <button type="button" class="tag-browse-resource-toggle" hidden aria-expanded="false" aria-controls="${textId}" onclick="event.stopPropagation();_tagBrowseToggleClamp(this,'${textId}')">More</button>
+    </div>`;
+}
 
+// Read-only Sticky card (P4-R033, discovery basis P4-D042 §7) — replaces the
+// prior 140-char hard-truncated single-line preview with the note's own
+// saved color as the card's visual identity (getStickyColor, unchanged, same
+// mechanism already used by Reminders/Board), a compact clamp with inline
+// More/Less (_tagBrowseBuildClampedNotes/_tagBrowseToggleClamp above), and a
+// bottom row matching the Activity card's own tags-left/meta-right
+// convention. No card-level click, no Edit/Delete/Archive, no
+// openStickyModal call — unchanged from every prior stage.
+// P4-R035 (discovery basis P4-D043 §11/§12): gained one narrow mutation
+// exception — a compact Pin/Unpin action, top-right of the header row,
+// reusing the existing .tag-browse-resource-actions/.tag-browse-resource-
+// action shell already proven by Folder/Contact/Location's own header
+// action buttons. Label reflects current state; onclick stops propagation
+// (defensive — this card has no outer onclick to protect against, matching
+// the same convention already used on the More/Less toggle) then calls the
+// new, small, Tag-Browse-local _tagBrowseTogglePin(id, enabled) below —
+// toggleNotePin/saveSticky themselves are not modified.
+function _tagBrowseBuildStickyCard(s) {
+  const c = getStickyColor(s.colorIdx);
+  const notesHTML = _tagBrowseBuildClampedNotes(s.text, `tbr-sticky-${s.id}`);
+  const dateText = _tagBrowseToText(s.date);
+  const timeText = _tagBrowseToText(s.time);
+  let dueMeta = '';
+  if (s.done) dueMeta = 'Completed';
+  else if (dateText) dueMeta = _tagBrowseEscText(dateText + (timeText ? ' · ' + fmtTime(timeText) : ''));
+  // P4-R034 (Stage D): nested tag opens pre-scoped to Notes & Resources / Notes.
+  const tagsHTML = _tagBrowseBuildTagChips(s.tags, _tagBrowseContextForRecord(null, 'sticky'));
+  const pinLabel = s.pinned ? 'Unpin' : 'Pin';
+  const pinBtn = `<button type="button" class="tag-browse-resource-action tag-browse-resource-pin" onclick="event.stopPropagation();_tagBrowseTogglePin('${s.id}',${s.pinned ? 'false' : 'true'})">${pinLabel}</button>`;
+  return `<div class="tag-browse-resource-card is-sticky-note" style="background:${c.bg};color:${c.text}">
+    <div class="tag-browse-resource-header">
+      <i class="ti ti-pin tag-browse-resource-icon" style="color:inherit;opacity:0.75"></i>
+      <div class="tag-browse-resource-actions">${pinBtn}</div>
+    </div>
+    ${notesHTML}
+    <div class="tag-browse-resource-footer">
+      <div class="tag-browse-resource-tags">${tagsHTML}</div>
+      ${dueMeta ? `<span class="tag-browse-resource-due" style="color:inherit;opacity:0.75">${dueMeta}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+// P4-R035 (discovery basis P4-D043 §12) — the one narrow mutation exception
+// inside Tag Browse's otherwise fully read-only Notes & Resources cards.
+// Reuses the existing toggleNotePin(id, enabled) completely unmodified —
+// same in-memory s.pinned mutation, same saveSticky(s).catch(()=>{})
+// fire-and-forget persist (no new rollback model — the app's existing
+// no-rollback-on-save-failure convention is preserved exactly, per owner
+// decision), same renderStickyLayer/renderReminders/renderOverview refresh
+// it already performs when triggered from the Reminders card. The only
+// addition is a call to the existing, already-guarded
+// _tagBrowseRefreshIfOpen() (unmodified — a no-op whenever Tag Browse isn't
+// the currently open modal), so Tag Browse's own visible cards/counts/
+// pinned-first ordering update immediately in place without closing/
+// reopening the modal. _tagBrowseState's own tag/tab/activityType/
+// activityStates/resourceType are left completely untouched, mirroring
+// exactly how the existing Priority/Status refresh hook (P4-R032) already
+// preserves them — Back/nav-stack state is unaffected (no pushNav/popNav/
+// clearNav/_navTo call here). No Edit/Delete/Archive/Complete path is
+// added; toggleNotePin/saveSticky/Sticky loaders/save format/Sheets/Apps
+// Script are all unmodified.
+function _tagBrowseTogglePin(id, enabled) {
+  toggleNotePin(id, enabled);
+  _tagBrowseRefreshIfOpen();
+}
+
+// Read-only Folder card (P4-R033, discovery basis P4-D042 §8; description
+// typography corrected by P4-R033-fix1 owner correction D). Open is
+// rendered only when _tagBrowseClassifyWebLink returns a safe href — blank,
+// unsafe-scheme, or unrecognized values render no Open action at all, and no
+// URL is ever generated/inferred from the name or description. The title
+// stays plain text (not a link) per the owner's explicit preference — Open
+// is the only, explicit activation target. The description now reuses
+// .tag-browse-resource-meta (the exact same supporting-text style Contact's
+// Position·Company and Location's address/phone lines already use) instead
+// of the prior bare .tag-browse-resource-body wrapper, which carried no
+// font-size/color of its own and so rendered at full title-like prominence
+// — the root cause of the owner's "resembles a second title" observation.
+// No More/Less here, per explicit instruction; natural wrapping only.
+function _tagBrowseBuildFolderCard(f) {
+  const link = _tagBrowseClassifyWebLink(f.url);
+  const openBtn = link
+    ? `<a class="tag-browse-resource-action" href="${link.href}" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link"></i> Open</a>`
+    : '';
+  const safeName = _tagBrowseEscText(_tagBrowseToText(f.name));
+  const rawDesc = _tagBrowseToText(f.desc);
+  const descHTML = rawDesc ? `<div class="tag-browse-resource-meta">${_tagBrowseTextToSafeHtml(rawDesc)}</div>` : '';
+  // P4-R034 (Stage D): nested tag opens pre-scoped to Notes & Resources / Folders.
+  const tagsHTML = _tagBrowseBuildTagChips(f.tags, _tagBrowseContextForRecord(null, 'folder'));
+  return `<div class="tag-browse-resource-card">
+    <div class="tag-browse-resource-header">
+      <i class="ti ti-folder tag-browse-resource-icon"></i>
+      <div class="tag-browse-resource-title">${safeName}</div>
+      <div class="tag-browse-resource-actions">${openBtn}</div>
+    </div>
+    ${descHTML}
+    <div class="tag-browse-resource-footer">
+      <div class="tag-browse-resource-tags">${tagsHTML}</div>
+    </div>
+  </div>`;
+}
+
+// Read-only Contact card (P4-R033, discovery basis P4-D042 §9; row order
+// refined by P4-R035, discovery basis P4-D043 §7/§8/C). Call/Email each
+// render only when _tagBrowseBuildTelHref/_tagBrowseBuildMailHref return a
+// non-blank, validated href — absent or malformed phone/email each
+// independently hide their own action, unchanged. Position/Company render as
+// one compact "Position · Company" line (Row 2, unchanged join logic).
+// P4-R035 adds a new Row 3 — the actual phone/email VALUES, escaped plain
+// text, shown independently of whether either one validates into a safe
+// action, matching the same "show the text regardless, upgrade to an action
+// only when safe" precedent Location's own phone line already established
+// (P4-D042 §10). Notes (Row 4) and Tags (final row) are otherwise unchanged,
+// only shifted one row down to make room for the new Row 3.
+function _tagBrowseBuildContactCard(c) {
+  const telHref = _tagBrowseBuildTelHref(c.phone);
+  const mailHref = _tagBrowseBuildMailHref(c.email);
+  const callBtn  = telHref  ? `<a class="tag-browse-resource-action" href="${telHref}"><i class="ti ti-phone"></i> Call</a>` : '';
+  const emailBtn = mailHref ? `<a class="tag-browse-resource-action" href="${mailHref}"><i class="ti ti-mail"></i> Email</a>` : '';
+  const safeName = _tagBrowseEscText(_tagBrowseToText(c.name));
+  const posCompany = [c.position, c.company]
+    .map(_tagBrowseToText).filter(Boolean).map(_tagBrowseEscText).join(' · ');
+  // P4-R035 (P4-D043 §7/§8): Row 3 — actual Phone Number · Email Address,
+  // both coerced via _tagBrowseToText then escaped via _tagBrowseEscText
+  // before display (never raw), joined with ' · ' only when both are
+  // present; a single present value renders alone with no stray separator;
+  // omitted entirely (no gap) when both are blank. Independent of
+  // telHref/mailHref validity — an invalid-but-present phone/email still
+  // displays here as safe escaped text, it just never produces a Call/Email
+  // action above.
+  const contactLine = [c.phone, c.email]
+    .map(_tagBrowseToText).filter(Boolean).map(_tagBrowseEscText).join(' · ');
+  const notesHTML = _tagBrowseBuildClampedNotes(c.notes, `tbr-contact-notes-${c.id}`);
+  // P4-R034 (Stage D): nested tag opens pre-scoped to Notes & Resources / Contacts.
+  const tagsHTML = _tagBrowseBuildTagChips(c.tags, _tagBrowseContextForRecord(null, 'contact'));
+  return `<div class="tag-browse-resource-card">
+    <div class="tag-browse-resource-header">
+      <i class="ti ti-user tag-browse-resource-icon"></i>
+      <div class="tag-browse-resource-title">${safeName}</div>
+      <div class="tag-browse-resource-actions">${callBtn}${emailBtn}</div>
+    </div>
+    ${posCompany ? `<div class="tag-browse-resource-meta">${posCompany}</div>` : ''}
+    ${contactLine ? `<div class="tag-browse-resource-meta">${contactLine}</div>` : ''}
+    ${notesHTML}
+    <div class="tag-browse-resource-footer">
+      <div class="tag-browse-resource-tags">${tagsHTML}</div>
+    </div>
+  </div>`;
+}
+
+// Read-only Location card (P4-R033, discovery basis P4-D042 §10; row order
+// refined by P4-R035, discovery basis P4-D043 §9/§10/D). View on Map uses
+// the exact same safe web-link classifier as Folder Open, reading only
+// l.mapUrl — never generated from the address, unchanged. Call is now a
+// header action button (moved up from the body, P4-D043 §10) using the same
+// _tagBrowseBuildTelHref gate Contact's own Call button already uses —
+// appears only for a valid phone value. Company · Phone Number is now a new
+// Row 2 plain-text metadata line (P4-D043 §9: l.company was already fetched
+// but never rendered by any prior Tag Browse stage) — the phone VALUE is
+// always shown here when present, independent of telHref validity, cleanly
+// separating "is the number displayed" from "is the number callable" (same
+// separation-of-concerns Contact's own new Row 3 uses, §C/§7-8).
+function _tagBrowseBuildLocationCard(l) {
+  const mapLink = _tagBrowseClassifyWebLink(l.mapUrl);
+  const mapBtn = mapLink
+    ? `<a class="tag-browse-resource-action" href="${mapLink.href}" target="_blank" rel="noopener noreferrer"><i class="ti ti-map"></i> View on Map</a>`
+    : '';
+  // P4-R033-fix1 root-cause fix, preserved: l.phone may load as a JS number
+  // (e.g. a numeric-looking Sheets cell) — _tagBrowseToText coerces it to a
+  // string before .trim() is ever implied/called. _tagBrowseBuildTelHref was
+  // already safe (String(raw) internally) and is unchanged.
+  const telHref = _tagBrowseBuildTelHref(l.phone);
+  const callBtn = telHref ? `<a class="tag-browse-resource-action" href="${telHref}"><i class="ti ti-phone"></i> Call</a>` : '';
+  const safeName = _tagBrowseEscText(_tagBrowseToText(l.name));
+  // P4-R035 (P4-D043 §9/§10): Row 2 — Company · Phone Number, both coerced
+  // via _tagBrowseToText then escaped via _tagBrowseEscText, joined with
+  // ' · ' only when both present, a single present value renders alone, the
+  // row is omitted entirely (no gap) when both are blank.
+  const companyPhone = [l.company, l.phone]
+    .map(_tagBrowseToText).filter(Boolean).map(_tagBrowseEscText).join(' · ');
+  const rawAddress = _tagBrowseToText(l.address);
+  const addressHTML = rawAddress ? `<div class="tag-browse-resource-meta">${_tagBrowseEscText(rawAddress)}</div>` : '';
+  const notesHTML = _tagBrowseBuildClampedNotes(l.notes, `tbr-location-notes-${l.id}`);
+  // P4-R034 (Stage D): nested tag opens pre-scoped to Notes & Resources / Locations.
+  const tagsHTML = _tagBrowseBuildTagChips(l.tags, _tagBrowseContextForRecord(null, 'location'));
+  return `<div class="tag-browse-resource-card">
+    <div class="tag-browse-resource-header">
+      <i class="ti ti-map-pin tag-browse-resource-icon"></i>
+      <div class="tag-browse-resource-title">${safeName}</div>
+      <div class="tag-browse-resource-actions">${callBtn}${mapBtn}</div>
+    </div>
+    ${companyPhone ? `<div class="tag-browse-resource-meta">${companyPhone}</div>` : ''}
+    ${addressHTML}
+    ${notesHTML}
+    <div class="tag-browse-resource-footer">
+      <div class="tag-browse-resource-tags">${tagsHTML}</div>
+    </div>
+  </div>`;
+}
+
+// Thin dispatcher — signature unchanged from every prior stage, so
+// _tagBrowseBuildContent's four existing call sites need no changes at all.
+function _tagBrowseBuildResourceCard(record, type) {
+  if (type === 'folder')  return _tagBrowseBuildFolderCard(record);
+  if (type === 'contact') return _tagBrowseBuildContactCard(record);
+  return _tagBrowseBuildLocationCard(record);
+}
+
+// Two equal-width, single-select tabs. A zero-count tab is a hard
+// "cannot select" (owner lock) — real `disabled` attribute, no onclick —
+// distinct from the filter pills below, which stay clickable-but-muted.
+function _tagBrowseBuildTabs(data) {
+  const s = _tagBrowseState;
+  const tabs = [
+    { key:'activities', label:'ACTIVITIES',         count: data.activityMatches.length },
+    { key:'notes',       label:'NOTES & RESOURCES', count: data.resourceCount },
+  ];
+  const html = tabs.map(t => {
+    const zero = t.count === 0;
+    const cls = 'tag-browse-tab' + (s.tab===t.key?' active':'') + (zero?' disabled':'');
+    const onclick = zero ? '' : ` onclick="_tagBrowseSetTab('${t.key}')"`;
+    return `<button class="${cls}"${onclick}${zero?' disabled':''}><span class="tag-browse-pill-count">${t.count}</span> ${t.label}</button>`;
+  }).join('');
+  return `<div id="tag-browse-tabs" class="tag-browse-tabs">${html}</div>`;
+}
+
+// Filter-pill rows for whichever tab is currently selected. Type/category
+// counts (Activities ALL/TASKS/EVENTS/ENTRIES; Notes & Resources
+// ALL/NOTES/FOLDERS/CONTACTS/LOCATIONS) are always computed from the full
+// matching set for that tab, never from a state-filtered subset — they must
+// not move when Activity state pills are toggled (owner lock). State-pill
+// counts are computed only within the currently selected Activity type scope.
+function _tagBrowseBuildFilters(data) {
+  const s = _tagBrowseState;
+  if (s.tab === 'notes') {
+    const opts = [
+      { key:'all',       label:'ALL',       count: data.resourceCount },
+      { key:'notes',     label:'NOTES',     count: data.stickyMatches.length },
+      { key:'folders',   label:'FOLDERS',   count: data.folderMatches.length },
+      { key:'contacts',  label:'CONTACTS',  count: data.contactMatches.length },
+      { key:'locations', label:'LOCATIONS', count: data.locationMatches.length },
+    ];
+    const html = opts.map(o => {
+      const active = s.resourceType === o.key;
+      const zero = o.count === 0;
+      return `<button class="tag-browse-pill${active?' active':''}${zero?' zero':''}" onclick="_tagBrowseSetResourceType('${o.key}')"><span class="tag-browse-pill-count">${o.count}</span> ${o.label}</button>`;
+    }).join('');
+    return `<div id="tag-browse-filters" class="tag-browse-filters"><div class="tag-browse-filter-row">${html}</div></div>`;
+  }
+
+  const typeOpts = [
+    { key:'all',   label:'ALL',     count: data.activityMatches.length },
+    { key:'task',  label:'TASKS',   count: data.taskMatches.length },
+    { key:'event', label:'EVENTS',  count: data.eventMatches.length },
+    { key:'entry', label:'ENTRIES', count: data.entryMatches.length },
+  ];
+  const typeHTML = typeOpts.map(o => {
+    const active = s.activityType === o.key;
+    const zero = o.count === 0;
+    return `<button class="tag-browse-pill${active?' active':''}${zero?' zero':''}" onclick="_tagBrowseSetActivityType('${o.key}')"><span class="tag-browse-pill-count">${o.count}</span> ${o.label}</button>`;
+  }).join('');
+
+  const stateCounts = _tagBrowseStateCounts(data, s.activityType);
+  // P4-R030-fix1 (owner correction 2): zero-count state pills are hidden
+  // entirely, not rendered disabled — unlike the main tabs (hard "cannot
+  // select" via a real disabled attribute) and the type/category pills
+  // above (kept visible but muted). Main-tab and type/category zero counts
+  // are unaffected by this — this filter applies only to this ACTIVE/
+  // OVERDUE/DONE row.
+  const stateOpts = [
+    { key:'active',  label:'ACTIVE',  count: stateCounts.active },
+    { key:'overdue', label:'OVERDUE', count: stateCounts.overdue },
+    { key:'done',    label:'DONE',    count: stateCounts.done },
+  ].filter(o => o.count > 0);
+  const stateHTML = stateOpts.map(o => {
+    const active = s.activityStates.includes(o.key);
+    return `<button class="tag-browse-pill${active?' active':''}" onclick="_tagBrowseToggleState('${o.key}')"><span class="tag-browse-pill-count">${o.count}</span> ${o.label}</button>`;
+  }).join('');
+
+  return `<div id="tag-browse-filters" class="tag-browse-filters">
+    <div class="tag-browse-filter-row">${typeHTML}</div>
+    ${stateOpts.length ? `<div class="tag-browse-filter-row">${stateHTML}</div>` : ''}
+  </div>`;
+}
+
+// The one scrolling content region (single scroll owner) — everything above
+// (header, enlarged chip, tabs, filters) stays outside/above this region.
+function _tagBrowseBuildContent(data) {
+  const s = _tagBrowseState;
+  let inner = '';
+  if (s.tab === 'notes') {
+    if (s.resourceType === 'all') {
+      if (data.stickyMatches.length)   inner += `<div class="tag-browse-group-header">Notes (${data.stickyMatches.length})</div>` + data.stickyMatches.map(_tagBrowseBuildStickyCard).join('');
+      if (data.folderMatches.length)   inner += `<div class="tag-browse-group-header">Folders (${data.folderMatches.length})</div>` + data.folderMatches.map(f => _tagBrowseBuildResourceCard(f,'folder')).join('');
+      if (data.contactMatches.length)  inner += `<div class="tag-browse-group-header">Contacts (${data.contactMatches.length})</div>` + data.contactMatches.map(c => _tagBrowseBuildResourceCard(c,'contact')).join('');
+      if (data.locationMatches.length) inner += `<div class="tag-browse-group-header">Locations (${data.locationMatches.length})</div>` + data.locationMatches.map(l => _tagBrowseBuildResourceCard(l,'location')).join('');
+      if (!inner) inner = `<div class="tag-browse-empty">No Notes & Resources tagged "${data.tag}"</div>`;
+    } else if (s.resourceType === 'notes') {
+      inner = data.stickyMatches.length ? data.stickyMatches.map(_tagBrowseBuildStickyCard).join('') : `<div class="tag-browse-empty">No Sticky Notes tagged "${data.tag}"</div>`;
+    } else if (s.resourceType === 'folders') {
+      inner = data.folderMatches.length ? data.folderMatches.map(f => _tagBrowseBuildResourceCard(f,'folder')).join('') : `<div class="tag-browse-empty">No Folders tagged "${data.tag}"</div>`;
+    } else if (s.resourceType === 'contacts') {
+      inner = data.contactMatches.length ? data.contactMatches.map(c => _tagBrowseBuildResourceCard(c,'contact')).join('') : `<div class="tag-browse-empty">No Contacts tagged "${data.tag}"</div>`;
+    } else {
+      inner = data.locationMatches.length ? data.locationMatches.map(l => _tagBrowseBuildResourceCard(l,'location')).join('') : `<div class="tag-browse-empty">No Locations tagged "${data.tag}"</div>`;
+    }
+  } else {
+    const typeScope = _tagBrowseActivityTypeScope(data, s.activityType);
+    if (!s.activityStates.length) {
+      // P4-R030-fix1 (owner correction 3): no state subfilter selected means
+      // no state restriction — grouped into Active → Overdue → Done
+      // sections (fixed order, empty sections omitted) instead of one flat
+      // list. Uses the same unchanged _tagBrowseStateOf (itself built only
+      // on _pdmIsDoneItem/_pdmIsOverdueItem) as the flat/filtered branch
+      // below — no competing classification. A single pass over typeScope
+      // partitions each record into exactly one section while preserving
+      // typeScope's own existing order within each — no .sort() anywhere.
+      const activeItems = [], overdueItems = [], doneItems = [];
+      typeScope.forEach(item => {
+        const st = _tagBrowseStateOf(item);
+        if (st === 'done') doneItems.push(item);
+        else if (st === 'overdue') overdueItems.push(item);
+        else activeItems.push(item);
+      });
+      let grouped = '';
+      if (activeItems.length)   grouped += `<div class="tag-browse-group-header">Active (${activeItems.length})</div>` + activeItems.map(_tagBrowseBuildActivityRow).join('');
+      if (overdueItems.length)  grouped += `<div class="tag-browse-group-header">Overdue (${overdueItems.length})</div>` + overdueItems.map(_tagBrowseBuildActivityRow).join('');
+      if (doneItems.length)     grouped += `<div class="tag-browse-group-header">Done (${doneItems.length})</div>` + doneItems.map(_tagBrowseBuildActivityRow).join('');
+      inner = grouped || `<div class="tag-browse-empty">No matching Activities</div>`;
+    } else {
+      // One or more state pills selected — existing flat multi-select OR
+      // view, unchanged, no section dividers.
+      const filtered = _tagBrowseApplyStates(typeScope, s.activityStates);
+      inner = filtered.length ? filtered.map(_tagBrowseBuildActivityRow).join('') : `<div class="tag-browse-empty">No matching Activities</div>`;
+    }
+  }
+  return `<div id="tag-browse-content" class="tag-browse-content" style="max-height:48vh;overflow-y:auto;padding-right:4px">${inner}</div>`;
+}
+
+// Rebuilds tabs + filters + content together on every interaction — mirrors
+// _pdmApplyFilterChange's own "swap the affected containers together"
+// technique, so pill/tab active-state, counts, and the visible list can
+// never drift out of sync with each other.
+function _tagBrowseRebuild() {
+  const tabsEl = document.getElementById('tag-browse-tabs');
+  const filtersEl = document.getElementById('tag-browse-filters');
+  const contentEl = document.getElementById('tag-browse-content');
+  if (!tabsEl || !filtersEl || !contentEl || !_tagBrowseState) return;
+  const data = _tagBrowseComputeData(_tagBrowseState.tag);
+  _tagBrowseNormalizeStates(data);
+  tabsEl.outerHTML = _tagBrowseBuildTabs(data);
+  filtersEl.outerHTML = _tagBrowseBuildFilters(data);
+  contentEl.outerHTML = _tagBrowseBuildContent(data);
+  // P4-R033-fix1 (owner correction B): re-measure Notes/Contact/Location
+  // clamp overflow after every rebuild — a narrow, mechanical addition; the
+  // function itself does its own fresh #tag-browse-content lookup, so the
+  // just-replaced contentEl node above does not need to be re-queried here.
+  _tagBrowseInitClampOverflow();
+}
+
+// P4-R032 (Stage C, discovery basis P4-D041): guarded refresh hook so a
+// Priority/Status edit made anywhere (a Tag Browse card itself, or any other
+// surface — Today, Board, Planner, TEE Detail, Person Detail — while Tag
+// Browse happens to be the currently open modal) keeps Tag Browse's visible
+// cards/counts/grouping correct without closing/reopening. Mirrors
+// _pdmRefreshIfOpen's own established shape exactly: a thin, named wrapper
+// around the existing rebuild path, added purely for call-site clarity and
+// naming symmetry with that precedent. _tagBrowseRebuild() already performs
+// every part of the required refresh unmodified — it recomputes
+// activityMatches/counts fresh from current STATE.items (which by this
+// point already reflects the changed priority/status, since the mutation
+// happens synchronously before saveTEE() is called), reclassifies every
+// item fresh via the unchanged _tagBrowseStateOf/_pdmIsDoneItem/
+// _pdmIsOverdueItem, re-sanitizes any now-zero-count selected Activity
+// state via the existing unchanged _tagBrowseNormalizeStates, and rebuilds
+// tabs/filters/content together so nothing can drift out of sync — all
+// while reading _tagBrowseState's own current tag/tab/activityType/
+// activityStates/resourceType exactly as they are, never resetting any of
+// them itself. _tagBrowseRebuild()'s own existing DOM-presence guard
+// (`#tag-browse-tabs`/`#tag-browse-filters`/`#tag-browse-content` must all
+// exist) is what makes this correctly a no-op whenever Tag Browse is not
+// the surface currently rendered in the modal backdrop — including while
+// Person Detail, TEE Detail, or nothing at all occupies it — so this can be
+// called unconditionally from changeItemPriority/changeItemStatus without
+// ever causing Tag Browse to open, rebuild unexpectedly, or interfere with
+// whatever modal (if any) is actually visible. No nav-stack function is
+// called here (no pushNav/popNav/clearNav/_navTo), so Back/reopen behavior,
+// including nested Tag Browse navigation and TEE Detail reopen closures,
+// is completely unaffected.
+function _tagBrowseRefreshIfOpen() {
+  _tagBrowseRebuild();
+}
+
+// P4-R034 (Stage D, discovery basis P4-D041 §17/§18): gained the additive
+// optional browseContext parameter recommended by discovery — old-style
+// single-argument callers (openTagList(tag)) remain fully valid, resolving
+// through _tagBrowseNormalizeContext(null) to the exact same Activities/All/
+// no-restriction fallback this function has always used. browseContext may
+// be either a minimal record-derived context ({type,state}, from
+// _tagBrowseContextForRecord) or a full state snapshot ({tab,activityType,
+// activityStates,resourceType}, from _tagBrowseSnapshotExprOfCurrentState) —
+// _tagBrowseNormalizeContext tells them apart and tolerates anything else
+// (null, malformed, unrecognized) by falling back cleanly, never throwing.
+function openTagList(tag, browseContext = null) {
+  // P4-R030-fix1 (owner correction 3): activityStates starts empty when no
+  // state restriction is resolved — rather than pre-selecting ACTIVE — so
+  // the Activities content builder groups that case into Active → Overdue →
+  // Done sections (see _tagBrowseBuildContent); a resolved single-state
+  // context (P4-R034) instead seeds activityStates with exactly that one
+  // key, which correctly renders as the existing flat/filtered view.
+  const _resolved = _tagBrowseNormalizeContext(browseContext);
+  _tagBrowseState = { tag, tab: _resolved.tab, activityType: _resolved.activityType, activityStates: _resolved.activityStates, resourceType: _resolved.resourceType };
+  const data = _tagBrowseComputeData(tag);
+  const tc = tagColor(tag);
+
+  // P4-R030-fix1 (owner correction 1): the enlarged #tag chip is now the
+  // header's own primary identity (Row 1, beside the shared close button),
+  // replacing the prior buildModalListHeader('🏷️','Tag Browse',...) call and
+  // its separate chip row below it — no "Tag Browse" title text, no emoji,
+  // anywhere in this modal now. buildModalListHeader() itself is untouched
+  // (simply not called here); _modalCloseBtn()'s existing clearNav()-backed
+  // close behavior is reused directly, unmodified.
+  // P4-R035 (discovery basis P4-D043 §6): the total-count subtitle no longer
+  // renders as its own standalone row — it now sits beside the tag chip
+  // inside one new .tag-browse-header-identity wrapper, which is Row 1's
+  // first flex child (the close button remains the second), so the existing
+  // .modal-title justify-content:space-between rule still keeps Close
+  // pinned right with zero change to .modal-title/buildModalListHeader().
   openModal(`
-    <div class="modal-title">
-      <div>
-        <div style="font-size:16px;font-weight:800">#${tag}</div>
-        <div style="font-size:11px;color:var(--muted)">${matches.length} item${matches.length!==1?'s':''} tagged</div>
+    <div class="modal-title tag-browse-header">
+      <div class="tag-browse-header-identity">
+        <span class="tag-browse-chip" style="background:${tc.bg};color:${tc.text};border-color:${tc.border}"><span class="tag-browse-chip-hash">#</span>${tag}</span>
+        <span class="tag-browse-header-count">${data.totalCount} record${data.totalCount!==1?'s':''}</span>
       </div>
       ${_modalCloseBtn()}
     </div>
-    <div style="max-height:55vh;overflow-y:auto;padding-right:4px">${listHTML}</div>
+    ${_tagBrowseBuildTabs(data)}
+    ${_tagBrowseBuildFilters(data)}
+    ${_tagBrowseBuildContent(data)}
     <div class="modal-actions" style="margin-top:12px">${_backBtn()}</div>`, true);
+  // P4-R033-fix1 (owner correction B): the initial render on a fresh open
+  // does not go through _tagBrowseRebuild, so clamp-overflow measurement
+  // needs this same mechanical call here too — otherwise a Sticky/Contact/
+  // Location note that overflows would show no More affordance until the
+  // user first triggers some other rebuild (e.g. a tab switch). openModal
+  // (unmodified) inserts the markup into the document synchronously, so the
+  // freshly-built #tag-browse-content already exists by this line.
+  _tagBrowseInitClampOverflow();
 }
 /* ── TEE DETAIL VIEW — with optional back button to day list ── */
 // ── TEE DETAIL VIEW ───────────────────────────────────────────
@@ -11318,7 +13378,8 @@ function openTEEDetail(itemId, _u1, isArchived) {
     row('Department', item.dept),
     row('Project', item.project),
     row('Category', item.category),
-    _buildDetailTagRow(item.tags, `openTEEDetail('${item.id}')`),
+    // P4-R034 (Stage D): pass this item's own source-aware context.
+    _buildDetailTagRow(item.tags, `openTEEDetail('${item.id}')`, _tagBrowseContextForRecord(item, item.type)),
     item.notes ? `<div><div style="margin:0 0 3px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px">Notes</div>
       <div style="font-size:13px;color:var(--text2);line-height:1.6;padding:8px 10px;background:var(--glass);border:1px solid var(--border);border-radius:10px">${item.notes}</div></div>` : '',
     _buildTEELinksDetailSection(item.links)
@@ -12445,7 +14506,7 @@ function saveTEEModal(existingId, type) {
   clearNav();
   renderAll();
   saveTEE(base)
-    .then(() => { toast(existingId ? 'Updated' : 'Created'); triggerSync(); })
+    .then(() => { toast(existingId ? 'Updated' : 'Created'); triggerSync(); ensureTagsRegistered(base.tags).catch(e => console.warn('ensureTagsRegistered failed:', e && e.message)); })
     .catch(() => toast('Saved locally — sheet will sync next time', 'info'));
 }
 
@@ -12656,9 +14717,10 @@ function _saveQuickPerson(itemId, type, defaultDate, defaultStatus) {
 
   const newPerson = { id:uid('P'), name, role, color, photo:'' };
   STATE.people.push(newPerson);
-  savePerson(newPerson).catch(()=>{});
   renderAll();
-  toast(`${name} added to the team ✓`, 'success');
+  savePerson(newPerson)
+    .then(()=>toast(`${name} added to the team ✓`, 'success'))
+    .catch(()=>toast(`${name} added locally`, 'info'));
 
   const existingItem = itemId ? STATE.items.find(i => i.id === itemId) : null;
   const carried = window._qapCarried || {};
@@ -12812,15 +14874,29 @@ function savePersonModal(existingId) {
     // Propagate name change to all items — tasks, events, AND entries
     if (oldName && oldName !== name) {
       let updatedCount = 0;
+      const renamePromises = [];
       STATE.items.forEach(item => {
         const parts = (item.assignees || '').split('|').map(s => s.trim());
         if (parts.includes(oldName)) {
           item.assignees = parts.map(n => n === oldName ? name : n).join('|');
-          saveTEE(item).catch(() => {});
+          renamePromises.push(saveTEE(item));
           updatedCount++;
         }
       });
-      if (updatedCount > 0) toast(`Updated name on ${updatedCount} item${updatedCount > 1 ? 's' : ''}`, 'info');
+      if (updatedCount > 0) {
+        Promise.allSettled(renamePromises).then(results => {
+          const okCount = results.filter(r => r.status === 'fulfilled').length;
+          const failedCount = updatedCount - okCount;
+
+          if (failedCount === 0) {
+            toast(`Updated name on ${okCount} item${okCount > 1 ? 's' : ''}`, 'info');
+          } else if (okCount > 0) {
+            toast(`Updated name on ${okCount} of ${updatedCount} items; ${failedCount} not saved`, 'info');
+          } else {
+            toast('Name updated locally; assignment changes were not saved', 'info');
+          }
+        });
+      }
     }
   } else {
     STATE.people.push(data);
@@ -13113,7 +15189,7 @@ function saveStickyModal(existingId) {
       s.tags     = mergedTags;
       s.date  = sDate;
       s.time  = sTime;
-      saveSticky(s).catch(()=>{});
+      saveSticky(s).then(()=>{ ensureTagsRegistered(s.tags).catch(e => console.warn('ensureTagsRegistered failed:', e && e.message)); }).catch(()=>{});
     }
   } else {
     const cx = Math.min(60 + STATE.stickies.length * 220, window.innerWidth - 220);
@@ -13132,7 +15208,7 @@ function saveStickyModal(existingId) {
       doneAt:   '',
     };
     STATE.stickies.push(s);
-    saveSticky(s).then(()=>toast('Note added')).catch(()=>toast('Saved locally','info'));
+    saveSticky(s).then(()=>{ toast('Note added'); ensureTagsRegistered(s.tags).catch(e => console.warn('ensureTagsRegistered failed:', e && e.message)); }).catch(()=>toast('Saved locally','info'));
   }
   window._stickyModalTags = [];
   clearNav(); renderStickyLayer(); renderReminders(); renderOverview();
@@ -13387,6 +15463,202 @@ function toggleStickyDone(id, isDone) {
   renderReminders(); renderOverview();
 }
 
+// ── DIRECTORY TAGS CHIP-ENTRY (P4-R036) ─────────────────────────────────
+// Discovery basis: P4-D044. Dedicated _dirTags*/.dir-tag-* namespace,
+// copied BY VALUE from TEE Add/Edit's own proven _teeTags*/.tee-tag-*
+// cluster (P4-R010) — never calling those functions, never sharing those
+// CSS classes, never modifying them. #df-tags remains the single,
+// unrenamed save-time hidden value-holder saveDirModal's existing,
+// unmodified local _parseTags(...) already reads via
+// document.getElementById('df-tags').value — no parser, save-path, or
+// Sheets-contract change of any kind. Suggestions are a small popover
+// anchored under the input via plain CSS (position:absolute relative to
+// .dir-tag-input-wrap) — not Sticky's own, unrelated, unmodified
+// caret-position mirror-div technique. No Tags-catalog Active filtering,
+// no preferred catalog casing, no Tags-sheet writes anywhere in this
+// cluster — suggestions are sourced only from the existing, unmodified
+// getAllKnownTags(). Owner decisions (this checkpoint, P4-R036): strip one
+// leading '#' before storage; do not force lowercase; case-insensitive
+// duplicate prevention (first-selected casing wins); Enter is the only
+// live commit key (no comma, no Backspace-removes-chip, no Arrow-key
+// suggestion navigation, no Tab interception, no tag-specific Escape); a
+// tag containing whitespace is split into its own separate chips at
+// commit time (never committed as one multi-word chip), keeping the live
+// widget's own chip set always exactly reproducible from the existing,
+// unmodified _parseTags(...)'s own whitespace/comma-splitting behavior at
+// save time.
+
+// Normalize a typed/clicked tag label for storage: trim outer spaces,
+// strip exactly one leading '#', trim again (handles "# work" -> "work").
+// Case is preserved — no lowercasing, no character stripping beyond the
+// leading '#'. Safe against any input type (coerced to string first).
+function _dirTagsNormalize(raw) {
+  let t = (raw == null ? '' : raw).toString().trim();
+  if (t.charAt(0) === '#') t = t.slice(1);
+  return t.trim();
+}
+
+// Read the current selection from the value-holder only (DOM-authoritative
+// read, matching every other Directory field's save-time contract) — no
+// global/window-scoped temporary state object is used.
+function _dirTagsGetSelected() {
+  const el = document.getElementById('df-tags');
+  if (!el) return [];
+  return el.value.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+// Write the selection back to the value-holder as a comma-delimited
+// string — already exactly compatible with the existing, unmodified
+// saveDirModal-local _parseTags(...), whose /[\s,]+/ splitter already
+// treats a comma as a delimiter — then re-render the visible chip/
+// suggestion UI. No change to _parseTags is required or made.
+function _dirTagsSetSelected(tags) {
+  const el = document.getElementById('df-tags');
+  if (!el) return;
+  el.value = tags.join(', ');
+  _dirTagsRender();
+}
+
+// Add one or more tags from a single typed/pasted/clicked value. Because
+// the existing, unmodified _parseTags(...) splits on any run of
+// whitespace or commas, a raw value containing internal whitespace (e.g.
+// a pasted "foo bar") is split here the same way *before* normalization —
+// never committed as one multi-word chip — so the live chip set the user
+// sees always exactly matches what _parseTags would independently produce
+// from the same raw text at save time. Each resulting piece is
+// normalized, rejected if blank, and skipped (but the whole call still
+// still refreshes/clears the input) if a case-insensitive duplicate of an
+// already-selected tag — otherwise appended (typed/clicked case
+// preserved; the first-selected casing always wins on a later duplicate
+// attempt, since a duplicate is simply skipped, never replacing the
+// existing chip). No Tags-sheet row is created or updated by any part of
+// this function.
+function _dirTagsAdd(rawValue) {
+  const pieces = (rawValue == null ? '' : rawValue.toString()).split(/[\s,]+/);
+  const current = _dirTagsGetSelected();
+  let changed = false;
+  pieces.forEach(piece => {
+    const tag = _dirTagsNormalize(piece);
+    if (!tag) return;
+    const isDuplicate = current.some(t => t.toLowerCase() === tag.toLowerCase());
+    if (!isDuplicate) {
+      current.push(tag);
+      changed = true;
+    }
+  });
+  if (changed) _dirTagsSetSelected(current);
+  const input = document.getElementById('df-tags-input');
+  if (input) { input.value = ''; input.focus(); }
+  _dirTagsRender();
+}
+
+// Remove exactly the tag named on the chip the x button belongs to
+// (case-insensitive match against the stored value) — data-tag identifies
+// the chip, copied by value from TEE's own unescaped mechanism (the same
+// proven, accepted pattern being ported, not a new safety behavior).
+function _dirTagsRemove(btnEl) {
+  const chip = btnEl.closest('.dir-tag-chip');
+  if (!chip) return;
+  const tag = chip.dataset.tag;
+  const current = _dirTagsGetSelected();
+  const next = current.filter(t => t.toLowerCase() !== tag.toLowerCase());
+  _dirTagsSetSelected(next);
+  const input = document.getElementById('df-tags-input');
+  if (input) input.focus();
+}
+
+// Enter is the only live commit key — no comma handling, no Backspace
+// handling, no Arrow Up/Down suggestion navigation, no Tab interception,
+// no tag-specific Escape exception (all intentionally omitted, matching
+// TEE's own current, accepted behavior exactly).
+function _dirTagsInputKeydown(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  _dirTagsAdd(e.target.value);
+}
+
+// Re-render chips (from the value-holder) and in-flow suggestions (from
+// the existing, unchanged getAllKnownTags(), filtered by the current
+// typed query and excluding already-selected tags, capped at 8 —
+// identical cap to TEE's own _teeTagsRender). Suggestions only render/show
+// while the input is focused AND has a non-empty typed query, matching
+// TEE's own P4-R010-fix1 behavior exactly; chips remain always visible
+// regardless of focus/typing state. No Tags-catalog Active filtering, no
+// preferred catalog casing — getAllKnownTags() is called completely
+// unmodified.
+function _dirTagsRender() {
+  const chipsEl = document.getElementById('df-tags-chips');
+  const suggEl  = document.getElementById('df-tags-suggestions');
+  const input   = document.getElementById('df-tags-input');
+  if (!chipsEl || !suggEl) return;
+
+  const selected      = _dirTagsGetSelected();
+  const selectedLower = selected.map(t => t.toLowerCase());
+
+  chipsEl.innerHTML = selected.length ? selected.map(t => {
+    const tc = tagColor(t);
+    return `<span class="dir-tag-chip" data-tag="${t}" style="background:${tc.bg};color:${tc.text};border-color:${tc.border}">#${t}<button type="button" class="dir-tag-chip-remove" title="Remove ${t}" aria-label="Remove ${t}" onclick="event.stopPropagation();_dirTagsRemove(this)">&times;</button></span>`;
+  }).join('') : '<span class="dir-tag-empty">No tags yet</span>';
+
+  const rawInputValue = input?.value || '';
+  const hasQuery  = rawInputValue.trim().length > 0;
+  const isFocused = document.activeElement === input;
+
+  if (!hasQuery || !isFocused) {
+    suggEl.innerHTML = '';
+    suggEl.classList.remove('dir-tag-suggestions-open');
+    return;
+  }
+
+  const query = rawInputValue.trim().toLowerCase().replace(/^#/, '');
+  const known = getAllKnownTags();
+  const matches = known.filter(t => !selectedLower.includes(t) && t.includes(query)).slice(0, 8);
+  const suggestionItems = matches.map(t =>
+    `<span class="dir-tag-suggestion" data-tag="${t}" onclick="_dirTagsAdd(this.dataset.tag)">#${t}</span>`
+  ).join('');
+
+  const rawTyped      = _dirTagsNormalize(rawInputValue);
+  const rawTypedLower = rawTyped.toLowerCase();
+  const alreadyKnown    = rawTypedLower && known.includes(rawTypedLower);
+  const alreadySelected = rawTypedLower && selectedLower.includes(rawTypedLower);
+  const createOption = (rawTyped && !alreadyKnown && !alreadySelected)
+    ? `<span class="dir-tag-suggestion dir-tag-suggestion-create" data-tag="${rawTyped}" onclick="_dirTagsAdd(this.dataset.tag)">+ Create #${rawTyped}</span>`
+    : '';
+
+  const html = suggestionItems + createOption;
+  suggEl.innerHTML = html;
+  suggEl.classList.toggle('dir-tag-suggestions-open', !!html);
+}
+
+// Builds the hidden value-holder, the visible search input, and its
+// suggestions popover. #df-tags stays the value-holder saveDirModal
+// already reads unchanged. Deferred via setTimeout(0), matching TEE's own
+// _buildTeeTagsInputField technique, so the initial render runs only
+// after openModal() has actually inserted this markup into the DOM. The
+// suggestions popover (.dir-tag-suggestions) sits inside a
+// position:relative wrapper (.dir-tag-input-wrap) so it can anchor
+// directly under the input via plain CSS, with no caret-tracking JS.
+// Blur hides it on the same short deferred-render delay TEE uses, so a
+// click on a suggestion registers before it disappears.
+function _buildDirTagsInputField(initialValue, placeholder) {
+  const initial = (initialValue || '').toString();
+  setTimeout(() => _dirTagsRender(), 0);
+  return `
+    <div class="dir-tag-input-wrap">
+      <input type="hidden" id="df-tags" value="${initial.replace(/"/g,'&quot;')}">
+      <input type="text" class="form-input dir-tag-input" id="df-tags-input" placeholder="${(placeholder||'Type a tag, press Enter…').replace(/"/g,'&quot;')}" autocomplete="off"
+        oninput="_dirTagsRender()" onkeydown="_dirTagsInputKeydown(event)"
+        onfocus="_dirTagsRender()" onblur="setTimeout(_dirTagsRender, 200)">
+      <div class="dir-tag-suggestions" id="df-tags-suggestions"></div>
+    </div>`;
+}
+
+// Builds the full-width selected-tags chips row. Populated entirely by
+// _dirTagsRender() via #df-tags-chips; starts empty here.
+function _buildDirTagsChipsRow() {
+  return `<div class="dir-tag-chips" id="df-tags-chips"></div>`;
+}
+
 // ═══════════════════════════════════════════════════════════
 // NOTE MODALS — Add/edit stickies with Pin + Float checkboxes
 // DIRECTORY MODALS — Folders, Contacts, Locations CRUD
@@ -13400,8 +15672,9 @@ function openDirModal(type, itemId) {
       <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="df-name" value="${item?.name||''}" placeholder="File or folder name"></div>
       <div class="form-group"><label class="form-label">URL Link</label><input class="form-input" id="df-url" value="${item?.url||''}" placeholder="https://…"></div>
       <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="df-desc" value="${item?.desc||''}" placeholder="What's inside"></div>
-      <div class="form-group"><label class="form-label">Tags <span style="font-size:10px;color:var(--muted);font-weight:400">space or enter to add</span></label>
-        <input class="form-input" id="df-tags" value="${(item?.tags||[]).map(t=>'#'+t).join(' ')}" placeholder="#finance #hr #2026"></div>`;
+      <div class="form-group"><label class="form-label">Tags <span style="font-size:10px;color:var(--muted);font-weight:400">press Enter to add</span></label>
+        ${_buildDirTagsInputField((item?.tags||[]).join(', '), '#finance #hr #2026')}
+        ${_buildDirTagsChipsRow()}</div>`;
   } else if (type === 'contact') {
     formHTML = `
       <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" id="df-name" value="${item?.name||''}" placeholder="Full name"></div>
@@ -13414,8 +15687,9 @@ function openDirModal(type, itemId) {
         <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="df-email" value="${item?.email||''}" placeholder="email@…"></div>
       </div>
       <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="df-notes" placeholder="Context, availability, preferences…" style="min-height:60px">${item?.notes||''}</textarea></div>
-      <div class="form-group"><label class="form-label">Tags <span style="font-size:10px;color:var(--muted);font-weight:400">space or enter to add</span></label>
-        <input class="form-input" id="df-tags" value="${(item?.tags||[]).map(t=>'#'+t).join(' ')}" placeholder="#supplier #client #urgent"></div>`;
+      <div class="form-group"><label class="form-label">Tags <span style="font-size:10px;color:var(--muted);font-weight:400">press Enter to add</span></label>
+        ${_buildDirTagsInputField((item?.tags||[]).join(', '), '#supplier #client #urgent')}
+        ${_buildDirTagsChipsRow()}</div>`;
   } else {
     formHTML = `
       <div class="form-group"><label class="form-label">Location Name *</label><input class="form-input" id="df-name" value="${item?.name||''}" placeholder="Branch / Store name"></div>
@@ -13426,8 +15700,9 @@ function openDirModal(type, itemId) {
       </div>
       <div class="form-group"><label class="form-label">Maps URL</label><input class="form-input" id="df-map" value="${item?.mapUrl||''}" placeholder="https://maps.google.com/…"></div>
       <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="df-notes" placeholder="Hours, parking, access notes…" style="min-height:60px">${item?.notes||''}</textarea></div>
-      <div class="form-group"><label class="form-label">Tags <span style="font-size:10px;color:var(--muted);font-weight:400">space or enter to add</span></label>
-        <input class="form-input" id="df-tags" value="${(item?.tags||[]).map(t=>'#'+t).join(' ')}" placeholder="#branch #manila #warehouse"></div>`;
+      <div class="form-group"><label class="form-label">Tags <span style="font-size:10px;color:var(--muted);font-weight:400">press Enter to add</span></label>
+        ${_buildDirTagsInputField((item?.tags||[]).join(', '), '#branch #manila #warehouse')}
+        ${_buildDirTagsChipsRow()}</div>`;
   }
   openModal(`
     <div class="modal-title">
@@ -13445,21 +15720,22 @@ function saveDirModal(type, existingId) {
   const name = document.getElementById('df-name').value.trim();
   if (!name) { toast('Name is required','error'); return; }
   const _parseTags = v => (v||'').split(/[\s,]+/).map(t=>t.trim().replace(/^#/,'')).filter(Boolean);
-  let data;
+  let data, p;
   if (type==='folder') {
     data = { id:existingId||uid('F'), name, url:document.getElementById('df-url').value.trim(), desc:document.getElementById('df-desc').value.trim(), tags:_parseTags(document.getElementById('df-tags').value) };
     if (existingId) STATE.folders = STATE.folders.map(x=>x.id===existingId?data:x); else STATE.folders.push(data);
-    saveFolder(data).catch(()=>{});
+    p = saveFolder(data);
   } else if (type==='contact') {
     data = { id:existingId||uid('C'), name, position:document.getElementById('df-pos').value.trim(), phone:document.getElementById('df-phone').value.trim(), email:document.getElementById('df-email').value.trim(), company:document.getElementById('df-company').value.trim(), notes:document.getElementById('df-notes').value.trim(), tags:_parseTags(document.getElementById('df-tags').value) };
     if (existingId) STATE.contacts = STATE.contacts.map(x=>x.id===existingId?data:x); else STATE.contacts.push(data);
-    saveContact(data).catch(()=>{});
+    p = saveContact(data);
   } else {
     data = { id:existingId||uid('L'), name, address:document.getElementById('df-addr').value.trim(), mapUrl:document.getElementById('df-map').value.trim(), notes:document.getElementById('df-notes').value.trim(), company:document.getElementById('df-company').value.trim(), phone:document.getElementById('df-phone').value.trim(), tags:_parseTags(document.getElementById('df-tags').value) };
     if (existingId) STATE.locations = STATE.locations.map(x=>x.id===existingId?data:x); else STATE.locations.push(data);
-    saveLocation(data).catch(()=>{});
+    p = saveLocation(data);
   }
-  clearNav(); renderDirectories(); toast(existingId?'Updated':'Added');
+  clearNav(); renderDirectories();
+  p.then(()=>{ toast(existingId?'Updated':'Added'); ensureTagsRegistered(data.tags).catch(e => console.warn('ensureTagsRegistered failed:', e && e.message)); }).catch(()=>toast('Saved locally','info'));
 }
 
 function removeDirItem(type, id) {
@@ -13476,10 +15752,12 @@ function removeDirItem(type, id) {
     `This ${label} will be permanently deleted. This cannot be undone.`,
     'Delete',
     () => {
-      if (type==='folder')   { STATE.folders   = STATE.folders.filter(x=>x.id!==id);   deleteFolder(id).catch(()=>{}); }
-      else if (type==='contact')  { STATE.contacts  = STATE.contacts.filter(x=>x.id!==id);  deleteContact(id).catch(()=>{}); }
-      else                        { STATE.locations = STATE.locations.filter(x=>x.id!==id); deleteLocation(id).catch(()=>{}); }
-      renderDirectories(); toast('Removed');
+      let p;
+      if (type==='folder')        { STATE.folders   = STATE.folders.filter(x=>x.id!==id);   p = deleteFolder(id); }
+      else if (type==='contact')  { STATE.contacts  = STATE.contacts.filter(x=>x.id!==id);  p = deleteContact(id); }
+      else                         { STATE.locations = STATE.locations.filter(x=>x.id!==id); p = deleteLocation(id); }
+      renderDirectories();
+      p.then(()=>toast('Removed')).catch(()=>toast('Removed locally','info'));
     }
   );
 }
